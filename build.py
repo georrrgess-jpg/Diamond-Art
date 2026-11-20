@@ -4,10 +4,11 @@
 Each ES module is wrapped in a function scope; imports become reads from the
 exporting module's namespace object. No dependencies, no network.
 """
-import re, pathlib
+import re, pathlib, subprocess
 
 ROOT = pathlib.Path(__file__).parent
-ORDER = ['gems', 'artworks', 'store', 'audio', 'board', 'app']
+subprocess.run(['node', str(ROOT / 'tools' / 'gen-meta.mjs')], check=True)
+ORDER = ['gems', 'artworks', 'collection2', 'meta', 'store', 'audio', 'board', 'app']
 
 def bundle_module(name):
     src = (ROOT / 'js' / f'{name}.js').read_text()
@@ -26,8 +27,10 @@ html = (ROOT / 'index.html').read_text()
 css = (ROOT / 'css' / 'style.css').read_text()
 body = re.search(r'<body>(.*?)<script type="module"', html, re.S).group(1)
 title = re.search(r'<title>(.*?)</title>', html).group(1)
+fonts = '\n'.join(re.findall(r'<link rel="(?:preconnect|stylesheet)" href="https://fonts[^>]*>', html))
 js = '\n'.join(bundle_module(m) for m in ORDER)
 out = f'''<title>{title}</title>
+{fonts}
 <meta name="description" content="A calm gem-by-number game: place faceted gemstones into numbered sockets to complete geometric mandalas.">
 <style>
 {css}

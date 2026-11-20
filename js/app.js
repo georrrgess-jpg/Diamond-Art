@@ -1,33 +1,48 @@
-import { CATALOG, getArtwork, sessionLabel } from './artworks.js';
-import { Board, renderThumb, exportPNG, tonesFor } from './board.js';
-import { paintGem } from './gems.js';
+import { CATALOG, getArtwork, sessionLabel, LEVEL, GEMS } from './artworks.js';
+import { META } from './meta.js';
+import { COLLECTION_SIZE } from './collection2.js';
+import { Board, renderThumb, exportPNG, tonesFor, fitCamera } from './board.js';
+import { paintGem, rgbStr } from './gems.js';
 import * as store from './store.js';
 import * as sfx from './audio.js';
 
 const $ = (s) => document.querySelector(s);
+const svg = (body, extra = '') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" ${extra}>${body}</svg>`;
 const ICON = {
-  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
-  menu: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
-  pan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V5.5a1.5 1.5 0 013 0V11m0-1V4.5a1.5 1.5 0 013 0V11m0-5.5a1.5 1.5 0 013 0V11m0-3.5a1.5 1.5 0 013 0V15a6 6 0 01-6 6h-1.5a6 6 0 01-4.6-2.2L4.6 15a1.6 1.6 0 012.4-2.1L8 14"/></svg>',
-  paint: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l7 6-7 12L5 9z"/><path d="M5 9h14M9 9l3-6 3 6-3 12z"/></svg>',
-  zin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M11 8v6M8 11h6M16 16l4 4"/></svg>',
-  zout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M8 11h6M16 16l4 4"/></svg>',
-  fit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
-  hint: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z"/></svg>',
+  back: svg('<path d="M15 5l-7 7 7 7"/>', 'stroke-width="2.2"'),
+  menu: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg>',
+  paint: svg('<path d="M12 3l7 6-7 12L5 9z"/><path d="M5 9h14M9 9l3-6 3 6-3 12z"/>'),
+  pan: svg('<path d="M8 13V5.5a1.5 1.5 0 013 0V11m0-1V4.5a1.5 1.5 0 013 0V11m0-5.5a1.5 1.5 0 013 0V11m0-3.5a1.5 1.5 0 013 0V15a6 6 0 01-6 6h-1.5a6 6 0 01-4.6-2.2L4.6 15a1.6 1.6 0 012.4-2.1L8 14"/>'),
+  zin: svg('<circle cx="11" cy="11" r="6.5"/><path d="M11 8v6M8 11h6M16 16l4 4"/>'),
+  zout: svg('<circle cx="11" cy="11" r="6.5"/><path d="M8 11h6M16 16l4 4"/>'),
+  fit: svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
+  find: svg('<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>'),
   heart: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.3 7.6 3.6 4 7.2 4c2 0 3.6 1.1 4.8 2.8C13.2 5.1 14.8 4 16.8 4c3.6 0 5.9 3.6 4.5 7.3-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg>',
-  heartO: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.3 7.6 3.6 4 7.2 4c2 0 3.6 1.1 4.8 2.8C13.2 5.1 14.8 4 16.8 4c3.6 0 5.9 3.6 4.5 7.3-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg>',
-  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  heartO: svg('<path d="M12 20.5s-7.5-4.6-9.3-9.2C1.3 7.6 3.6 4 7.2 4c2 0 3.6 1.1 4.8 2.8C13.2 5.1 14.8 4 16.8 4c3.6 0 5.9 3.6 4.5 7.3-1.8 4.6-9.3 9.2-9.3 9.2z"/>'),
+  check: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 'stroke-width="3.2"'),
+  play: '<svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M7 4.5v15l13-7.5z"/></svg>',
+  palette: svg('<circle cx="6" cy="17" r="2.5"/><circle cx="12" cy="17" r="2.5"/><circle cx="18" cy="17" r="2.5"/><path d="M12 4l4 4-4 5-4-5z"/>'),
+  tap: svg('<path d="M9 11V5.5a1.5 1.5 0 013 0V11l4.6.9a2 2 0 011.6 2.2l-.7 5a2 2 0 01-2 1.9H11a2 2 0 01-1.6-.8L6 15.5a1.5 1.5 0 012.2-2L9 14"/><path d="M5 5.5a5 5 0 018-3"/>'),
 };
+const LEVEL_INFO = {
+  Beginner: 'Bold shapes and a handful of colours',
+  Medium: 'Richer patterns for a relaxing evening',
+  Intricate: 'Fine detail that rewards zooming in',
+  Expert: 'Dense mosaics of over a thousand gems',
+  Master: 'Grand works of 2,000 to 3,000+ gems, made to savour over many sittings',
+};
+const PIPS = (d) => '◆'.repeat(LEVEL[d] + 1) + '◇'.repeat(4 - LEVEL[d]);
+const fmtN = (n) => n.toLocaleString('en-US');
+const fmtTime = (ms) => { const m = Math.round(ms / 60000); return m < 1 ? 'under a minute' : m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`; };
 
 // ---------------------------------------------------------------- state
 const S = {
-  settings: { sound: true, autoAdvance: true, reduced: null },
+  settings: { sound: true, autoAdvance: true, reduced: null, vibe: true, coached: false },
   favorites: new Set(),
-  summary: {}, // artId -> {count,total,completed,updated}
-  filters: { cat: 'all', diff: 'all', status: 'all' },
-  cur: null, // {art, filled, sel, remaining, camera, completed}
+  summary: {}, // artId -> {count,total,completed,updated,time}
+  filters: { status: 'all', diff: 'all', cat: 'all' },
+  cur: null,
 };
-const thumbs = new Map();
 const sysReduced = matchMedia('(prefers-reduced-motion: reduce)');
 const reducedMotion = () => (S.settings.reduced === null ? sysReduced.matches : S.settings.reduced);
 
@@ -41,9 +56,9 @@ function flushSave() {
   const ids = []; for (let i = 0; i < c.filled.length; i++) if (c.filled[i]) ids.push(i);
   const rec = {
     schema: store.SCHEMA, art: c.art.id, version: c.art.version, mode: 'number',
-    filled: ids, camera: c.camera, sel: c.sel, updated: Date.now(), completed: c.completed,
+    filled: ids, camera: c.camera, sel: c.sel, updated: Date.now(), completed: c.completed, time: Math.round(c.time),
   };
-  S.summary[c.art.id] = { count: ids.length, total: c.art.sockets.length, completed: c.completed, updated: rec.updated };
+  S.summary[c.art.id] = { count: ids.length, total: c.art.sockets.length, completed: c.completed, updated: rec.updated, time: rec.time };
   return store.set(store.progressKey(c.art.id), rec);
 }
 const saveSettings = () => store.set('settings', { schema: store.SCHEMA, ...S.settings });
@@ -52,122 +67,188 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) flush
 window.addEventListener('pagehide', flushSave);
 
 // ---------------------------------------------------------------- gallery
-function thumbFor(id) {
-  if (!thumbs.has(id)) thumbs.set(id, renderThumb(getArtwork(id), 300));
-  return thumbs.get(id);
-}
-function copyCanvas(src, cls) {
-  const c = document.createElement('canvas');
-  c.width = src.width; c.height = src.height;
-  if (cls) c.className = cls;
-  c.getContext('2d').drawImage(src, 0, 0);
+const thumbCache = new Map(); // key -> canvas (bounded below)
+function thumbKey(id) { const s = S.summary[id]; return s && s.count && !s.completed ? `${id}:${s.count}` : `${id}:full`; }
+async function thumbFor(id, size) {
+  const key = thumbKey(id) + ':' + size;
+  if (thumbCache.has(key)) return thumbCache.get(key);
+  const art = getArtwork(id), s = S.summary[id];
+  let filled = null;
+  if (s && s.count && !s.completed) {
+    const rec = store.sanitizeProgress(await store.get(store.progressKey(id)), art);
+    filled = rec ? rec.filled : null;
+  }
+  const c = renderThumb(art, size, filled);
+  thumbCache.set(key, c);
+  if (thumbCache.size > 90) thumbCache.delete(thumbCache.keys().next().value);
   return c;
 }
+function paintInto(target, src) {
+  const c = document.createElement('canvas');
+  c.width = src.width; c.height = src.height;
+  c.getContext('2d').drawImage(src, 0, 0);
+  target.replaceChildren(c);
+  target.classList.remove('loading');
+}
+// Thumbnails render lazily as cards scroll into view, one per idle slice.
+const thumbQueue = [];
+let thumbBusy = false;
+function pumpThumbs() {
+  if (thumbBusy) return;
+  const job = thumbQueue.shift(); if (!job) return;
+  if (!job.el.isConnected) { pumpThumbs(); return; }
+  thumbBusy = true;
+  thumbFor(job.id, job.size).then((c) => { if (job.el.isConnected) paintInto(job.el, c); }).catch(() => {}).finally(() => {
+    thumbBusy = false;
+    setTimeout(pumpThumbs, 0);
+  });
+}
+const io = new IntersectionObserver((entries) => {
+  for (const e of entries) if (e.isIntersecting) {
+    io.unobserve(e.target);
+    thumbQueue.push({ el: e.target, id: e.target.dataset.id, size: +e.target.dataset.size || 300 });
+  }
+  pumpThumbs();
+}, { rootMargin: '400px' });
+
 function statusOf(id) {
   const s = S.summary[id];
-  if (!s || !s.count) return s && s.completed ? 'done' : 'new';
-  return s.completed ? 'done' : 'progress';
+  if (!s) return 'new';
+  if (s.completed) return 'done';
+  return s.count ? 'progress' : 'new';
+}
+
+// Card metadata without generating the artwork (precomputed; falls back to generating).
+function metaOf(m) {
+  const x = META[m.id];
+  if (x && x.v === m.version) return x;
+  const a = getArtwork(m.id);
+  return (META[m.id] = { v: m.version, n: a.sockets.length, pal: a.palette.map((p) => p.key) });
+}
+function swatchHTML(meta) {
+  return meta.pal.slice(0, 8).map((k) => `<i style="background:${rgbStr(tonesFor({ key: k, ...GEMS[k] })[2])}"></i>`).join('');
+}
+
+function cardHTML(m) {
+  const meta = metaOf(m), n = meta.n, st = statusOf(m.id), sum = S.summary[m.id];
+  const pct = sum ? Math.floor((sum.count / n) * 100) : 0;
+  const fav = S.favorites.has(m.id);
+  const label = `${m.name}. ${m.difficulty}, ${fmtN(n)} gems${st === 'done' ? ', finished' : st === 'progress' ? `, ${pct}% placed` : ''}`;
+  return `
+    <button class="open" aria-label="${label}">
+      <div class="thumb loading" data-id="${m.id}"></div>
+      ${st === 'done' ? `<span class="tag done">${ICON.check} Finished</span>` : st === 'progress' ? `<span class="tag">${pct}% placed</span>` : ''}
+      <div class="info">
+        <h3 class="name">${m.name}</h3>
+        <div class="meta"><i class="pips" data-pips="${PIPS(m.difficulty)}"></i><span>${fmtN(n)} gems</span></div>
+        ${st === 'progress' ? `<div class="bar"><i style="width:${pct}%"></i></div>` : `<div class="foot"><div class="swatches">${swatchHTML(meta)}</div><span class="time">${sessionLabel(n)}</span></div>`}
+      </div>
+    </button>
+    <button class="fav" aria-pressed="${fav}" aria-label="Favorite ${m.name}">${fav ? ICON.heart : ICON.heartO}</button>`;
 }
 
 function renderGallery() {
-  const grid = $('#grid'); grid.innerHTML = '';
-  const f = S.filters;
+  const f = S.filters, box = $('#sections');
+  box.innerHTML = '';
+  thumbQueue.length = 0;
   const list = CATALOG.filter((m) =>
     (f.cat === 'all' || m.category === f.cat) && (f.diff === 'all' || m.difficulty === f.diff) &&
     (f.status === 'all' || (f.status === 'fav' ? S.favorites.has(m.id) : statusOf(m.id) === f.status)));
   $('#empty').hidden = list.length > 0;
-  const pending = [];
-  for (const m of list) {
-    const art = getArtwork(m.id), sum = S.summary[m.id], st = statusOf(m.id);
-    const n = art.sockets.length;
-    const pct = sum ? Math.floor((sum.count / n) * 100) : 0;
-    const card = document.createElement('article');
-    card.className = 'card';
-    card.innerHTML = `
-      <button class="open" aria-label="${m.name}, ${m.difficulty}, ${n} gems${st === 'done' ? ', completed' : st === 'progress' ? `, ${pct}% complete` : ''}">
-        <div class="thumb"></div>
-        <div class="info">
-          <h3 class="name">${m.name}</h3>
-          <div class="meta"><span>${m.difficulty}</span><span class="dot">·</span><span>${n} gems</span></div>
-          <div class="state">${st === 'done' ? `<span class="badge done">${ICON.check.replace('<svg', '<svg width="11" height="11"')} Completed</span>`
-            : st === 'progress' ? `<div class="bar"><i style="width:${pct}%"></i></div><span>${pct}%</span>`
-            : `<span>${sessionLabel(n)}</span>`}</div>
-        </div>
-      </button>
-      <button class="fav" aria-pressed="${S.favorites.has(m.id)}" aria-label="Favorite ${m.name}">${S.favorites.has(m.id) ? ICON.heart : ICON.heartO}</button>`;
-    card.querySelector('.open').onclick = () => openArt(m.id);
-    const fav = card.querySelector('.fav');
-    fav.onclick = () => {
-      if (S.favorites.has(m.id)) S.favorites.delete(m.id); else S.favorites.add(m.id);
-      saveFavs();
-      fav.setAttribute('aria-pressed', S.favorites.has(m.id));
-      fav.innerHTML = S.favorites.has(m.id) ? ICON.heart : ICON.heartO;
-      if (S.filters.status === 'fav') renderGallery();
-    };
-    grid.appendChild(card);
-    pending.push([card.querySelector('.thumb'), m.id]);
+  const levels = [...new Set(list.map((m) => m.difficulty))];
+  for (const lv of levels) {
+    const items = list.filter((m) => m.difficulty === lv);
+    const sec = document.createElement('section');
+    sec.className = 'level';
+    sec.innerHTML = `<div class="level-head"><h2>${lv}</h2><i class="pips" data-pips="${PIPS(lv)}"></i><p>${LEVEL_INFO[lv]} · ${items.length} ${items.length === 1 ? 'artwork' : 'artworks'}</p></div><div class="grid"></div>`;
+    const grid = sec.querySelector('.grid');
+    for (const m of items) {
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.innerHTML = cardHTML(m);
+      card.querySelector('.open').onclick = () => openArt(m.id);
+      const fav = card.querySelector('.fav');
+      fav.onclick = () => {
+        if (S.favorites.has(m.id)) S.favorites.delete(m.id); else S.favorites.add(m.id);
+        saveFavs();
+        const on = S.favorites.has(m.id);
+        fav.setAttribute('aria-pressed', on); fav.innerHTML = on ? ICON.heart : ICON.heartO;
+        if (S.filters.status === 'fav') renderGallery();
+      };
+      grid.appendChild(card);
+      io.observe(card.querySelector('.thumb'));
+    }
+    box.appendChild(sec);
   }
-  // render thumbnails progressively so the gallery appears instantly
-  const step = () => {
-    const job = pending.shift(); if (!job) return;
-    job[0].appendChild(copyCanvas(thumbFor(job[1])));
-    setTimeout(step, 0);
-  };
-  step();
-  renderContinue();
+  renderRail();
+  renderStats();
 }
 
-function renderContinue() {
-  const box = $('#continue');
-  const recent = Object.entries(S.summary).filter(([, s]) => s.count && !s.completed).sort((a, b) => b[1].updated - a[1].updated)[0];
-  if (!recent) { box.hidden = true; return; }
-  const [id, s] = recent, m = CATALOG.find((c) => c.id === id);
-  if (!m) { box.hidden = true; return; }
-  box.hidden = false;
-  box.innerHTML = '';
-  const btn = document.createElement('button');
-  btn.className = 'continue';
-  btn.setAttribute('aria-label', `Continue ${m.name}`);
-  btn.appendChild(copyCanvas(thumbFor(id)));
-  const pct = Math.floor((s.count / s.total) * 100);
-  btn.insertAdjacentHTML('beforeend', `<div><div class="eyebrow">Continue</div><div class="ct">${m.name}</div><div class="cm">${pct}% complete · ${s.total - s.count} gems left</div></div><span class="go">Resume</span>`);
-  btn.onclick = () => openArt(id);
-  box.appendChild(btn);
+function renderStats() {
+  const done = Object.values(S.summary).filter((s) => s.completed).length;
+  const gems = Object.values(S.summary).reduce((a, s) => a + (s.count || 0), 0);
+  $('#st-done').textContent = `${done} / ${COLLECTION_SIZE}`;
+  $('#st-gems').textContent = fmtN(gems);
 }
 
-document.querySelectorAll('.chips').forEach((g) => {
+function renderRail() {
+  const recent = Object.entries(S.summary).filter(([id, s]) => s.count && !s.completed && CATALOG.some((m) => m.id === id))
+    .sort((a, b) => b[1].updated - a[1].updated);
+  $('#rail').hidden = !recent.length;
+  const track = $('#rail-track'); track.innerHTML = '';
+  for (const [id, s] of recent) {
+    const m = CATALOG.find((c) => c.id === id);
+    const pct = Math.floor((s.count / s.total) * 100);
+    const b = document.createElement('button');
+    b.className = 'rail-card';
+    b.setAttribute('aria-label', `Continue ${m.name}, ${pct}% placed`);
+    b.innerHTML = `<div class="thumb loading" data-id="${id}" data-size="184" style="width:92px;height:92px;border-radius:14px;flex:none;overflow:hidden"></div>
+      <div class="rc-body"><div class="rc-name">${m.name}</div>
+      <div class="rc-meta">${pct}% · ${fmtN(s.total - s.count)} gems left</div>
+      <span class="go">${ICON.play}Resume</span></div>`;
+    b.onclick = () => openArt(id);
+    track.appendChild(b);
+    io.observe(b.querySelector('.thumb'));
+  }
+}
+
+document.querySelectorAll('.filters [data-group]').forEach((g) => {
   g.addEventListener('click', (e) => {
-    const b = e.target.closest('.chip'); if (!b) return;
-    g.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-pressed', c === b));
+    const b = e.target.closest('button'); if (!b) return;
+    g.querySelectorAll('button').forEach((c) => c.setAttribute('aria-pressed', c === b));
     S.filters[g.dataset.group] = b.dataset.v;
     renderGallery();
   });
 });
+document.querySelectorAll('.chips .pips').forEach((p) => { p.dataset.pips = '◆'.repeat(+p.dataset.n); });
 
 // ---------------------------------------------------------------- play
+let lastVibe = 0;
 const board = new Board($('#cv'), {
   onPlace(i) {
     const c = S.cur, g = c.art.sockets[i];
     c.remaining[g.p]--;
     c.placed++;
-    c.dirty = true; scheduleSave();
+    c.dirty = true; c.lastInput = performance.now(); scheduleSave();
     sfx.place(c.placed);
-    updatePalItem(g.p); updateProgress();
+    if (S.settings.vibe && navigator.vibrate && performance.now() - lastVibe > 70) { lastVibe = performance.now(); try { navigator.vibrate(4); } catch {} }
+    updatePalItem(g.p); updateProgress(); mmDirty();
     if (c.remaining[g.p] === 0) paletteComplete(g.p);
   },
   onWrong(p) {
     sfx.wrong();
-    toast(`That socket takes gem ${p + 1}`);
+    toast(`That spot needs gem ${p + 1} · ${S.cur.art.palette[p].name}`);
     const el = palEls[p]; if (el) { el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); }
   },
-  onTooSmall() { toast('Zoom in for detail'); },
+  onTooSmall(isTap) { toast(isTap ? 'Zooming in so you can place gems' : 'Zoom in to place these gems'); },
   onUndoStroke(ids) {
     const c = S.cur;
     for (const i of ids) if (c.filled[i]) { c.filled[i] = 0; c.remaining[c.art.sockets[i].p]++; c.placed--; board.anims.delete(i); }
     c.dirty = true; scheduleSave();
-    refreshPalette(); updateProgress(); board.invalidate();
+    refreshPalette(); updateProgress(); board.invalidate(); mmDirty();
   },
   onCamera(cam) { if (S.cur) { S.cur.camera = cam; S.cur.dirty = true; scheduleSave(); } },
+  onFrame() { updateMinimapView(); },
 });
 
 let palEls = [];
@@ -177,27 +258,36 @@ function buildPalette() {
   c.art.palette.forEach((entry, p) => {
     const b = document.createElement('button');
     b.className = 'pal'; b.setAttribute('role', 'radio');
+    b.innerHTML = `<span class="gem"><svg viewBox="0 0 50 50" aria-hidden="true"><circle cx="25" cy="25" r="23" class="track"/><circle cx="25" cy="25" r="23" class="fill"/></svg></span>
+      <span class="num">${p + 1}</span><span class="left"></span><span class="check">${ICON.check}</span>`;
     const cv = document.createElement('canvas');
-    const dpr = Math.min(2, devicePixelRatio || 1), sz = 44;
+    const dpr = Math.min(2, devicePixelRatio || 1), sz = 38;
     cv.width = cv.height = sz * dpr;
     const x = cv.getContext('2d');
     x.scale(dpr, dpr); x.translate(sz / 2, sz / 2 - 1);
-    paintGem(x, 'round', 34, 34, 0, tonesFor(entry), p % 3);
-    b.appendChild(cv);
-    b.insertAdjacentHTML('beforeend', `<span class="num">${p + 1}</span><span class="left"></span><span class="check">${ICON.check}</span>`);
+    paintGem(x, 'round', 30, 30, 0, tonesFor(entry), p % 2);
+    b.querySelector('.gem').appendChild(cv);
     b.onclick = () => selectPal(p, true);
     box.appendChild(b); palEls.push(b);
   });
+  c.totals = c.art.palette.map(() => 0);
+  c.art.sockets.forEach((s) => c.totals[s.p]++);
   refreshPalette();
 }
 function updatePalItem(p) {
   const c = S.cur, el = palEls[p]; if (!el) return;
-  const left = c.remaining[p];
+  const left = c.remaining[p], total = c.totals[p];
   el.classList.toggle('done', left === 0);
-  el.querySelector('.left').textContent = left === 0 ? 'Done' : `${left} left`;
-  el.setAttribute('aria-label', `Gem ${p + 1}, ${c.art.palette[p].name}, ${left === 0 ? 'complete' : left + ' remaining'}`);
+  el.querySelector('.left').textContent = left === 0 ? 'Done' : `${fmtN(left)} left`;
+  el.querySelector('.fill').style.strokeDashoffset = String(144.5 * (left / total));
+  el.setAttribute('aria-label', `Gem ${p + 1}, ${c.art.palette[p].name}, ${left === 0 ? 'complete' : left + ' left'}`);
   el.setAttribute('aria-checked', String(p === c.sel));
   el.tabIndex = p === c.sel ? 0 : -1;
+  if (p === c.sel) updateSelPill();
+}
+function updateSelPill() {
+  const c = S.cur, p = c.sel, e = c.art.palette[p], left = c.remaining[p];
+  $('#sel-pill').innerHTML = `<i style="background:${rgbStr(tonesFor(e)[2])}"></i><b>${p + 1} · ${e.name}</b><span>${left ? `${fmtN(left)} to place` : 'all placed'}</span>`;
 }
 function refreshPalette() { S.cur.art.palette.forEach((_, p) => updatePalItem(p)); }
 function selectPal(p, user) {
@@ -208,50 +298,85 @@ function selectPal(p, user) {
   c.dirty = true; scheduleSave();
 }
 function paletteComplete(p) {
-  const c = S.cur;
-  const el = palEls[p];
+  const c = S.cur, el = palEls[p];
   if (el) { el.classList.remove('cheer'); void el.offsetWidth; el.classList.add('cheer'); }
   if (c.placed === c.art.sockets.length) { finish(); return; }
   sfx.paletteDone();
   toast(`${c.art.palette[p].name} complete`);
   if (S.settings.autoAdvance) {
     const n = c.art.palette.length;
-    for (let k = 1; k < n; k++) { const q = (p + k) % n; if (c.remaining[q] > 0) { setTimeout(() => S.cur === c && c.sel === p && selectPal(q), 350); break; } }
+    for (let k = 1; k < n; k++) { const q = (p + k) % n; if (c.remaining[q] > 0) { setTimeout(() => S.cur === c && c.sel === p && selectPal(q), 380); break; } }
   }
 }
 function updateProgress() {
-  const c = S.cur, total = c.art.sockets.length;
-  const pct = (c.placed / total) * 100;
-  $('#prog-fill').style.width = pct + '%';
-  $('#prog-txt').textContent = `${Math.floor(pct)}%`;
-  $('#prog-txt').setAttribute('aria-label', `${c.placed} of ${total} gems placed`);
+  const c = S.cur, total = c.art.sockets.length, f = c.placed / total;
+  $('#prog-arc').style.strokeDashoffset = String(113.1 * (1 - f));
+  $('#prog-txt').textContent = `${Math.floor(f * 100)}%`;
+  $('#prog').setAttribute('aria-label', `${c.placed} of ${total} gems placed`);
+  $('#art-sub').textContent = c.placed === total ? `All ${fmtN(total)} gems placed` : `${fmtN(total - c.placed)} of ${fmtN(total)} gems left`;
 }
 
+// ---------------- minimap
+const mm = { canvas: $('#mm'), box: $('#minimap'), view: $('#mm-view'), dirty: true, t: 0, size: 0 };
+function mmDirty() { mm.dirty = true; }
+function updateMinimapView() {
+  const c = S.cur; if (!c) return;
+  const show = board.zoomRatio > 1.7;
+  if (mm.box.hidden === show) mm.box.hidden = !show;
+  if (!show) return;
+  const size = mm.box.clientWidth || 112;
+  const now = performance.now();
+  if ((mm.dirty && now - mm.t > 1500) || mm.size !== size) {
+    mm.dirty = false; mm.t = now; mm.size = size;
+    renderThumb(c.art, size, c.filled, mm.canvas);
+  }
+  const ft = fitCamera(c.art, size, size, 0.03), cam = board.cam;
+  const x0 = (-cam.x / cam.s) * ft.s + ft.x, y0 = (-cam.y / cam.s) * ft.s + ft.y;
+  const w = (board.W / cam.s) * ft.s, h = (board.H / cam.s) * ft.s;
+  const cl = (v) => Math.max(-2, Math.min(size + 2, v));
+  const L = cl(x0), T = cl(y0), R = cl(x0 + w), B = cl(y0 + h);
+  const st = mm.view.style;
+  st.left = L + 'px'; st.top = T + 'px'; st.width = Math.max(6, R - L) + 'px'; st.height = Math.max(6, B - T) + 'px';
+}
+function mmJump(e, animate) {
+  const c = S.cur; if (!c) return;
+  const r = mm.box.getBoundingClientRect(), size = r.width;
+  const ft = fitCamera(c.art, size, size, 0.03);
+  board.centerOn((e.clientX - r.left - ft.x) / ft.s, (e.clientY - r.top - ft.y) / ft.s, animate && !reducedMotion());
+}
+mm.box.addEventListener('pointerdown', (e) => { e.preventDefault(); try { mm.box.setPointerCapture(e.pointerId); } catch {} mmJump(e, true); });
+mm.box.addEventListener('pointermove', (e) => { if (e.buttons) mmJump(e, false); });
+
+// ---------------- open / leave
 async function openArt(id) {
   sfx.unlock();
   const art = getArtwork(id);
-  const rec = store.sanitizeProgress(await store.get(store.progressKey(id)), art);
+  let rec = null;
+  try { rec = store.sanitizeProgress(await store.get(store.progressKey(id)), art); } catch {}
   const filled = rec ? rec.filled : new Uint8Array(art.sockets.length);
   const remaining = art.palette.map(() => 0);
   let placed = 0;
   art.sockets.forEach((s, i) => { if (filled[i]) placed++; else remaining[s.p]++; });
   let sel = rec ? Math.min(rec.sel, art.palette.length - 1) : 0;
   if (remaining[sel] === 0) { const q = remaining.findIndex((r) => r > 0); if (q >= 0) sel = q; }
-  S.cur = { art, filled, remaining, placed, sel, camera: rec && rec.camera, completed: placed === art.sockets.length, dirty: false };
+  const prevTime = (S.summary[id] && S.summary[id].time) || 0;
+  S.cur = { art, filled, remaining, placed, sel, camera: rec && rec.camera, completed: placed === art.sockets.length, dirty: false, time: prevTime, lastInput: performance.now() };
   $('#art-name').textContent = art.name;
-  document.title = `${art.name} — Lustra`;
+  document.title = `${art.name} · Lustra`;
   show('play');
   board.reduced = reducedMotion();
   setMode('paint');
+  mm.size = 0; mm.box.hidden = true;
   board.load(art, filled, sel, rec && rec.camera);
-  buildPalette(); updateProgress();
+  buildPalette(); updateProgress(); mmDirty();
   palEls[sel] && palEls[sel].scrollIntoView({ inline: 'center', block: 'nearest' });
   if (S.cur.completed) setTimeout(() => completionPanel(true), 300);
+  else if (!S.settings.coached) showCoach();
 }
 
 function leave() {
   flushSave();
-  closeMenu(); closeModal();
+  closeMenu(); closeModal(); $('#coach').hidden = true;
   board.unload();
   S.cur = null;
   document.title = 'Lustra Gem Mosaics';
@@ -263,10 +388,16 @@ function show(which) {
   $('#play').hidden = which !== 'play';
 }
 
+// Active play time: counts while the tab is visible and the player touched it in the last minute.
+setInterval(() => {
+  const c = S.cur;
+  if (c && !c.completed && !document.hidden && performance.now() - c.lastInput < 60000) c.time += 1000;
+}, 1000);
+document.addEventListener('pointerdown', () => { if (S.cur) S.cur.lastInput = performance.now(); }, { capture: true, passive: true });
+
 function finish() {
   const c = S.cur;
   c.completed = true; c.dirty = true; flushSave();
-  thumbs.delete(c.art.id + ':p');
   setTimeout(() => {
     if (S.cur !== c) return;
     sfx.complete();
@@ -280,9 +411,13 @@ function completionPanel(revisit) {
   const idx = CATALOG.findIndex((m) => m.id === c.art.id);
   const next = CATALOG.slice(idx + 1).concat(CATALOG.slice(0, idx)).find((m) => statusOf(m.id) !== 'done');
   openModal(`
-    <div class="eyebrow">${revisit ? 'Completed piece' : 'Artwork complete'}</div>
+    <div class="eyebrow">${revisit ? 'In your collection' : 'Artwork complete'}</div>
     <h3 id="modal-title">${c.art.name}</h3>
-    <p>${c.art.sockets.length} gems placed. ${revisit ? 'It lives in your completed collection.' : 'Added to your completed collection.'}</p>
+    <div class="done-stats">
+      <div><b>${fmtN(c.art.sockets.length)}</b><span>gems placed</span></div>
+      <div><b>${c.art.palette.length}</b><span>gem colours</span></div>
+      ${c.time > 30000 ? `<div><b>${fmtTime(c.time)}</b><span>of play</span></div>` : ''}
+    </div>
     <div class="actions">
       <button class="btn" data-a="admire">Admire</button>
       <button class="btn" data-a="export">Save image</button>
@@ -296,22 +431,25 @@ function completionPanel(revisit) {
 
 function doExport() {
   const c = S.cur; if (!c) return;
-  const cv = exportPNG(c.art, c.filled, 2000);
-  cv.toBlob((blob) => {
-    if (!blob) { toast('Could not create the image'); return; }
-    const url = URL.createObjectURL(blob);
-    const back = c.completed ? () => completionPanel(true) : closeModal;
-    openModal(`
-      <h3 id="modal-title">${c.art.name}</h3>
-      <img class="export-img" src="${url}" alt="${c.art.name}, rendered at 2000 by 2000 pixels">
-      <p>Press and hold the image (or right-click it) and choose Save Image.</p>
-      <div class="actions"><button class="btn primary" data-a="done">Done</button></div>`, {
-      done: () => { URL.revokeObjectURL(url); back(); },
-    });
-  }, 'image/png');
+  toast('Preparing image…');
+  setTimeout(() => {
+    const cv = exportPNG(c.art, c.filled, 2000);
+    cv.toBlob((blob) => {
+      if (!blob) { toast('Could not create the image'); return; }
+      const url = URL.createObjectURL(blob);
+      const back = c.completed ? () => completionPanel(true) : closeModal;
+      openModal(`
+        <h3 id="modal-title">${c.art.name}</h3>
+        <img class="export-img" src="${url}" alt="${c.art.name}, rendered at 2000 by 2000 pixels">
+        <p>Press and hold the image (or right-click it) and choose Save Image.</p>
+        <div class="actions"><button class="btn primary" data-a="done">Done</button></div>`, {
+        done: () => { URL.revokeObjectURL(url); back(); },
+      });
+    }, 'image/png');
+  }, 30);
 }
 
-// ---------------------------------------------------------------- modal / menu / toast
+// ---------------------------------------------------------------- modal / menu / toast / coach
 let modalActions = null, modalReturn = null;
 function openModal(html, actions, clear = false) {
   const m = $('#modal'), sh = m.querySelector('.sheet');
@@ -332,14 +470,18 @@ $('#modal').addEventListener('click', (e) => {
 let toastT;
 function toast(msg) {
   const t = $('#toast');
-  if (t.textContent === msg && t.classList.contains('show')) { clearTimeout(toastT); }
   t.textContent = msg; t.classList.add('show');
-  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1600);
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800);
 }
+
+function showCoach() { $('#coach').hidden = false; $('#coach-ok').focus(); }
+$('#coach-ok').onclick = () => { $('#coach').hidden = true; S.settings.coached = true; saveSettings(); };
+document.querySelectorAll('.step-ico').forEach((el) => { el.innerHTML = { palette: ICON.palette, tap: ICON.tap, zoom: ICON.zin, find: ICON.find }[el.dataset.ico]; });
 
 function openMenu() {
   $('#menu').hidden = false; $('#btn-menu').setAttribute('aria-expanded', 'true');
   $('#opt-sound').checked = S.settings.sound;
+  $('#opt-vibe').checked = S.settings.vibe;
   $('#opt-auto').checked = S.settings.autoAdvance;
   $('#opt-motion').checked = reducedMotion();
   $('#opt-sound').focus();
@@ -348,22 +490,24 @@ function closeMenu() { if ($('#menu').hidden) return; $('#menu').hidden = true; 
 $('#btn-menu').onclick = (e) => { e.stopPropagation(); $('#menu').hidden ? openMenu() : closeMenu(); };
 document.addEventListener('pointerdown', (e) => { if (!$('#menu').hidden && !e.target.closest('#menu') && !e.target.closest('#btn-menu')) closeMenu(); });
 $('#opt-sound').onchange = (e) => { S.settings.sound = e.target.checked; sfx.setSound(S.settings.sound); saveSettings(); };
+$('#opt-vibe').onchange = (e) => { S.settings.vibe = e.target.checked; saveSettings(); };
 $('#opt-auto').onchange = (e) => { S.settings.autoAdvance = e.target.checked; saveSettings(); };
 $('#opt-motion').onchange = (e) => { S.settings.reduced = e.target.checked; applyMotion(); saveSettings(); };
+$('#m-help').onclick = () => { closeMenu(); showCoach(); };
 $('#m-export').onclick = () => { closeMenu(); doExport(); };
 $('#m-restart').onclick = () => {
   closeMenu();
   const c = S.cur;
-  openModal(`<h3 id="modal-title">Restart ${c.art.name}?</h3><p>All ${c.placed} placed gems on this artwork will be removed. Your other artworks are not affected.</p>
+  openModal(`<h3 id="modal-title">Restart ${c.art.name}?</h3><p>All ${fmtN(c.placed)} placed gems on this artwork will be removed. Your other artworks are not affected.</p>
     <div class="actions"><button class="btn" data-a="no">Keep my progress</button><button class="btn danger" data-a="yes">Restart</button></div>`, {
     no: closeModal,
     yes: () => {
       closeModal();
-      c.filled.fill(0); c.placed = 0; c.completed = false;
+      c.filled.fill(0); c.placed = 0; c.completed = false; c.time = 0;
       c.remaining = c.art.palette.map(() => 0); c.art.sockets.forEach((s) => c.remaining[s.p]++);
       c.sel = 0; c.camera = null; c.dirty = true; flushSave();
       board.load(c.art, c.filled, 0, null);
-      refreshPalette(); updateProgress();
+      refreshPalette(); updateProgress(); mmDirty();
       toast('Artwork restarted');
     },
   });
@@ -373,41 +517,38 @@ function applyMotion() { board.reduced = reducedMotion(); document.documentEleme
 // ---------------------------------------------------------------- tools / keys
 function setMode(m) {
   board.mode = m;
-  const b = $('#t-mode');
-  b.innerHTML = m === 'pan' ? ICON.pan : ICON.paint;
-  b.setAttribute('aria-pressed', String(m === 'pan'));
-  b.setAttribute('aria-label', m === 'pan' ? 'Pan mode on — tap to switch to placing gems' : 'Place mode — tap to switch to pan');
-  b.title = m === 'pan' ? 'Pan (drag moves the canvas)' : 'Place gems (switch to pan)';
+  $('#t-paint').setAttribute('aria-pressed', String(m === 'paint'));
+  $('#t-pan').setAttribute('aria-pressed', String(m === 'pan'));
 }
 $('#btn-back').innerHTML = ICON.back; $('#btn-menu').innerHTML = ICON.menu;
-$('#t-zin').innerHTML = ICON.zin; $('#t-zout').innerHTML = ICON.zout; $('#t-fit').innerHTML = ICON.fit; $('#t-hint').innerHTML = ICON.hint;
-['t-zin', 't-zout', 't-fit', 't-hint'].forEach((id) => { $('#' + id).title = $('#' + id).getAttribute('aria-label'); });
+$('#t-paint').innerHTML = ICON.paint; $('#t-pan').innerHTML = ICON.pan;
+$('#t-zin').innerHTML = ICON.zin; $('#t-zout').innerHTML = ICON.zout; $('#t-fit').innerHTML = ICON.fit; $('#t-hint').innerHTML = ICON.find;
 $('#btn-back').onclick = leave;
-$('#t-mode').onclick = () => setMode(board.mode === 'pan' ? 'paint' : 'pan');
-$('#t-zin').onclick = () => board.zoomBy(1.5);
-$('#t-zout').onclick = () => board.zoomBy(1 / 1.5);
+$('#t-paint').onclick = () => setMode('paint');
+$('#t-pan').onclick = () => setMode('pan');
+$('#t-zin').onclick = () => board.zoomBy(1.6);
+$('#t-zout').onclick = () => board.zoomBy(1 / 1.6);
 $('#t-fit').onclick = () => board.fit(true);
-$('#t-hint').onclick = () => { if (S.cur && !board.showHint()) toast('All gems of this number are placed'); };
+$('#t-hint').onclick = () => { if (S.cur && !board.showHint()) toast('Every gem of this number is placed'); };
 
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { if (!$('#modal').hidden) closeModal(); else closeMenu(); return; }
-  if (!S.cur || !$('#modal').hidden || e.target.closest('input, #menu')) return;
-  if (e.code === 'Space' && !e.repeat && e.target === document.body || e.code === 'Space' && e.target.id === 'cv') { board.space = true; e.preventDefault(); return; }
+  if (e.key === 'Escape') { if (!$('#coach').hidden) $('#coach-ok').click(); else if (!$('#modal').hidden) closeModal(); else closeMenu(); return; }
+  if (!S.cur || !$('#modal').hidden || !$('#coach').hidden || e.target.closest('input, #menu')) return;
+  if (e.code === 'Space' && (e.target === document.body || e.target.id === 'cv')) { board.space = true; e.preventDefault(); return; }
   if (e.key === '+' || e.key === '=') board.zoomBy(1.4);
   else if (e.key === '-') board.zoomBy(1 / 1.4);
   else if (e.key === '0') board.fit(true);
-  else if (e.key.toLowerCase() === 'h') $('#t-hint').click();
+  else if (e.key.toLowerCase() === 'h' || e.key.toLowerCase() === 'f') $('#t-hint').click();
   else if (e.key === ']' || e.key === '[' || (e.target.closest('.palette') && (e.key === 'ArrowRight' || e.key === 'ArrowLeft'))) {
     const n = S.cur.art.palette.length, d = e.key === ']' || e.key === 'ArrowRight' ? 1 : -1;
     selectPal((S.cur.sel + d + n) % n, true);
     if (e.target.closest('.palette')) palEls[S.cur.sel].focus();
     e.preventDefault();
-  }
+  } else if (/^[1-9]$/.test(e.key) && +e.key <= S.cur.art.palette.length) selectPal(+e.key - 1, true);
 });
 window.addEventListener('keyup', (e) => { if (e.code === 'Space') board.space = false; });
 window.addEventListener('blur', () => { board.space = false; });
 ['pointerdown', 'touchend'].forEach((t) => document.addEventListener(t, () => sfx.unlock(), { capture: true, passive: true }));
-// iOS Safari ignores user-scalable=no; stop page pinch-zoom outside the canvas
 ['gesturestart', 'gesturechange'].forEach((t) => document.addEventListener(t, (e) => e.preventDefault()));
 document.addEventListener('dblclick', (e) => { if (e.target.closest('#play')) e.preventDefault(); });
 sysReduced.addEventListener && sysReduced.addEventListener('change', applyMotion);
@@ -416,20 +557,15 @@ sysReduced.addEventListener && sysReduced.addEventListener('change', applyMotion
 (async function boot() {
   try {
     const st = await store.get('settings');
-    if (st && typeof st === 'object') {
-      if (typeof st.sound === 'boolean') S.settings.sound = st.sound;
-      if (typeof st.autoAdvance === 'boolean') S.settings.autoAdvance = st.autoAdvance;
-      if (typeof st.reduced === 'boolean') S.settings.reduced = st.reduced;
-    }
+    if (st && typeof st === 'object') for (const k of ['sound', 'autoAdvance', 'reduced', 'vibe', 'coached']) if (typeof st[k] === 'boolean') S.settings[k] = st[k];
     const fv = await store.get('favorites');
     if (Array.isArray(fv)) S.favorites = new Set(fv.filter((x) => typeof x === 'string'));
     await Promise.all(CATALOG.map(async (m) => {
       const rec = await store.get(store.progressKey(m.id));
-      if (!rec) return;
-      const art = getArtwork(m.id), p = store.sanitizeProgress(rec, art);
-      if (!p) return;
-      const count = p.filled.reduce((a, b) => a + b, 0);
-      S.summary[m.id] = { count, total: art.sockets.length, completed: p.completed && count === art.sockets.length, updated: p.updated };
+      if (!rec || !Array.isArray(rec.filled)) return;
+      const total = metaOf(m).n;
+      const count = rec.filled.filter((i) => Number.isInteger(i) && i >= 0 && i < total).length;
+      S.summary[m.id] = { count, total, completed: !!rec.completed && count === total, updated: rec.updated || 0, time: +rec.time || 0 };
     }));
   } catch (err) { console.warn('Lustra: could not read saved data', err); }
   sfx.setSound(S.settings.sound);

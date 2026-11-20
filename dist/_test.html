@@ -1,20 +1,32 @@
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui}[hidden]{display:none!important}</style></head><body><title>Lustra Gem Mosaics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap">
 <meta name="description" content="A calm gem-by-number game: place faceted gemstones into numbered sockets to complete geometric mandalas.">
 <style>
+/* Layout: full-bleed ivory "workbench"; the gallery is a jeweller's tray of cards,
+   the play screen gives the artwork everything between a slim header and the gem tray. */
 :root {
-  --bg: #f6f1e8;
-  --surface: #fdfbf7;
-  --ink: #2e2820;
-  --ink-2: #6f6555;
-  --ink-3: #9a8f7e;
-  --line: #e6ddcd;
-  --accent: #b98a3e;
-  --accent-ink: #7a5a22;
+  --bg: #f5f0e6;
+  --bg-2: #efe8db;
+  --surface: #fffdf9;
+  --ink: #2a241c;
+  --ink-2: #6b6152;
+  --ink-3: #9c907d;
+  --line: #e5dccb;
+  --line-2: #d8ccb6;
+  --gold: #b8893b;
+  --gold-ink: #7d5a1f;
+  --gold-soft: #f3e7cf;
+  --ok: #2f7a4b;
+  --ok-soft: #e4f1e7;
+  --danger: #a23a3a;
   --focus: #2f6fe0;
-  --shadow: 0 1px 2px rgba(80, 60, 30, .06), 0 6px 22px rgba(80, 60, 30, .08);
-  --radius: 18px;
-  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
-  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --shadow-1: 0 1px 2px rgba(70, 50, 20, .06), 0 4px 14px rgba(70, 50, 20, .07);
+  --shadow-2: 0 2px 6px rgba(70, 50, 20, .08), 0 18px 40px rgba(70, 50, 20, .14);
+  --radius: 20px;
+  --display: "Fraunces", "Iowan Old Style", Palatino, Georgia, serif;
+  --sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --st: env(safe-area-inset-top, 0px);
   --sb: env(safe-area-inset-bottom, 0px);
   --sl: env(safe-area-inset-left, 0px);
@@ -25,182 +37,271 @@
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
 body { overscroll-behavior: none; }
 button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-.export-img { display: block; width: 100%; max-width: 100%; aspect-ratio: 1; border-radius: 14px; margin: 4px 0 12px; background: #f8f4ec; -webkit-touch-callout: default; }
 [hidden] { display: none !important; }
 :focus-visible { outline: 2.5px solid var(--focus); outline-offset: 2px; border-radius: 10px; }
 .screen { position: fixed; inset: 0; }
 
-/* ---------------- gallery */
-#gallery { overflow-y: auto; padding: calc(18px + var(--st)) calc(20px + var(--sr)) calc(40px + var(--sb)) calc(20px + var(--sl)); }
-#gallery > * { max-width: 1240px; margin-left: auto; margin-right: auto; }
-.g-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 0 18px; }
+/* ================= gallery ================= */
+#gallery { overflow-y: auto; background:
+  radial-gradient(1200px 500px at 85% -10%, #fbf4e4 0%, transparent 60%),
+  radial-gradient(900px 400px at -10% 10%, #f2ece2 0%, transparent 60%), var(--bg); }
+.g-wrap { max-width: 1280px; margin: 0 auto; padding: calc(22px + var(--st)) max(16px, calc(24px + var(--sr))) calc(48px + var(--sb)) max(16px, calc(24px + var(--sl))); }
+.g-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 4px 0 22px; }
 .brand { display: flex; gap: 12px; align-items: center; }
-.brand-gem { width: 38px; height: 38px; filter: drop-shadow(0 3px 4px rgba(30, 60, 120, .25)); }
-.wordmark { font-family: var(--serif); font-weight: 500; font-size: 32px; letter-spacing: .06em; margin: 0; line-height: 1; }
-.tagline { margin: 4px 0 0; color: var(--ink-2); font-size: 13.5px; letter-spacing: .02em; }
+.brand-gem { width: 42px; height: 42px; filter: drop-shadow(0 4px 6px rgba(30, 60, 120, .25)); }
+.wordmark { font-family: var(--display); font-weight: 500; font-size: 36px; letter-spacing: .02em; margin: 0; line-height: 1; font-variation-settings: "opsz" 144; }
+.tagline { margin: 5px 0 0; color: var(--ink-2); font-size: 14px; }
+.stats { display: flex; gap: 8px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 8px 14px; display: flex; flex-direction: column; min-width: 96px; box-shadow: var(--shadow-1); }
+.stat b { font-family: var(--display); font-weight: 500; font-size: 22px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--ink-2); }
 
-.continue { display: flex; gap: 16px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 12px 16px 12px 12px; margin-bottom: 20px; cursor: pointer; transition: transform .18s ease, box-shadow .18s ease; text-align: left; width: 100%; }
-@media (hover: hover) { .continue:hover { transform: translateY(-2px); } }
-.continue canvas { width: 76px; height: 76px; border-radius: 12px; flex: none; background: #fbf8f2; }
-.continue .eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; color: var(--accent-ink); margin-bottom: 3px; }
-.continue .ct { font-family: var(--serif); font-size: 20px; }
-.continue .cm { color: var(--ink-2); font-size: 13px; margin-top: 4px; }
-.continue .go { margin-left: auto; background: var(--ink); color: #fff; border-radius: 999px; padding: 10px 18px; font-size: 14px; white-space: nowrap; }
+.sec-title { font-family: var(--display); font-weight: 500; font-size: 22px; margin: 0 0 12px; letter-spacing: .005em; }
+.rail { margin-bottom: 26px; }
+.rail-track { display: flex; gap: 14px; overflow-x: auto; padding: 4px 2px 12px; scroll-snap-type: x mandatory; scrollbar-width: thin; }
+.rail-card { flex: none; width: min(340px, 82vw); scroll-snap-align: start; display: flex; gap: 14px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-1); padding: 10px 16px 10px 10px; cursor: pointer; text-align: left; transition: transform .18s ease, box-shadow .18s ease; }
+@media (hover: hover) { .rail-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-2); } }
+.rail-card canvas { width: 92px; height: 92px; border-radius: 14px; flex: none; background: #fbf8f2; }
+.rail-card .rc-body { min-width: 0; flex: 1; }
+.rail-card .rc-name { font-family: var(--display); font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rail-card .rc-meta { color: var(--ink-2); font-size: 13px; margin: 3px 0 9px; }
+.rail-card .go { display: inline-flex; align-items: center; gap: 6px; background: var(--ink); color: #fff; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; }
 
-.filters { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-bottom: 18px; }
+.filters { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-bottom: 8px; position: sticky; top: calc(-1px); z-index: 4; padding: 10px 0; background: linear-gradient(var(--bg) 80%, rgba(245, 240, 230, 0)); }
+.seg { display: inline-flex; background: var(--bg-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.seg::-webkit-scrollbar { display: none; }
+.seg button { border: 0; background: transparent; padding: 8px 14px; border-radius: 999px; font-size: 14px; font-weight: 500; color: var(--ink-2); cursor: pointer; white-space: nowrap; min-height: 38px; transition: background .15s, color .15s, box-shadow .15s; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(70, 50, 20, .14); }
+.seg.small button { padding: 6px 12px; font-size: 13px; min-height: 34px; }
 .chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; max-width: 100%; padding: 2px; }
 .chips::-webkit-scrollbar { display: none; }
-.chip { border: 1px solid var(--line); background: var(--surface); padding: 8px 14px; border-radius: 999px; font-size: 13.5px; color: var(--ink-2); cursor: pointer; white-space: nowrap; min-height: 38px; transition: background .15s, color .15s, border-color .15s; }
-.chip:hover { border-color: #d6c9b2; color: var(--ink); }
+.chip { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: var(--surface); padding: 7px 13px; border-radius: 999px; font-size: 13.5px; color: var(--ink-2); cursor: pointer; white-space: nowrap; min-height: 38px; transition: background .15s, color .15s, border-color .15s; }
+@media (hover: hover) { .chip:hover { border-color: var(--line-2); color: var(--ink); } }
 .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+.pips { display: inline-flex; gap: 2px; font-style: normal; }
+.pips::before { content: attr(data-pips); letter-spacing: 1px; font-size: 9px; color: var(--gold); }
+.chip[aria-pressed="true"] .pips::before { color: #e8c98a; }
 
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); gap: 22px; }
-@media (max-width: 520px) { .grid { grid-template-columns: repeat(2, 1fr); gap: 14px; } }
-.card { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; transition: transform .2s ease, box-shadow .2s ease; }
-@media (hover: hover) { .card:hover { transform: translateY(-3px); box-shadow: 0 2px 4px rgba(80,60,30,.06), 0 14px 32px rgba(80,60,30,.12); } }
-.card:active { transform: translateY(-1px) scale(.995); }
+.level { margin-top: 26px; }
+.level-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.level-head h2 { font-family: var(--display); font-weight: 500; font-size: 24px; margin: 0; }
+.level-head .pips::before { font-size: 11px; }
+.level-head p { margin: 0; color: var(--ink-2); font-size: 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 228px), 1fr)); gap: 20px; }
+@media (max-width: 600px) { .filters { position: static; background: none; } .foot .time { display: none; } }
+@media (max-width: 540px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } }
+
+.card { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-1); overflow: hidden; transition: transform .2s ease, box-shadow .2s ease; }
+@media (hover: hover) { .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-2); } }
+.card:active { transform: scale(.99); }
 .card .open { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; text-align: left; border-radius: var(--radius); }
-.card .thumb { aspect-ratio: 1; width: 100%; display: block; background: #fbf8f2; }
-.card .thumb canvas { width: 100%; height: 100%; display: block; }
-.card .info { padding: 10px 14px 14px; border-top: 1px solid #f0e9dc; }
-.card .name { font-family: var(--serif); font-size: 17.5px; margin: 0 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card .meta { font-size: 12.5px; color: var(--ink-2); display: flex; gap: 6px; flex-wrap: wrap; }
+.thumb { position: relative; aspect-ratio: 1; width: 100%; max-width: 100%; background: radial-gradient(circle at 50% 45%, #fffdf8, #f6f0e4); }
+.thumb canvas { width: 100%; height: 100%; display: block; animation: fadein .35s ease; }
+.thumb.loading::after { content: ""; position: absolute; inset: 22%; border-radius: 50%; background: linear-gradient(110deg, #f1e9da 30%, #faf5ec 50%, #f1e9da 70%); background-size: 200% 100%; animation: shimmer 1.2s linear infinite; }
+.card .info { padding: 11px 14px 14px; border-top: 1px solid #f0e8da; }
+.card .name { font-family: var(--display); font-weight: 500; font-size: 17.5px; margin: 0 0 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card .meta { font-size: 12.5px; color: var(--ink-2); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-variant-numeric: tabular-nums; }
 .card .meta .dot { color: var(--ink-3); }
-.card .state { margin-top: 9px; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); min-height: 18px; }
-.card .state .bar { flex: 1; }
-.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; letter-spacing: .04em; padding: 3px 9px; border-radius: 999px; background: #f3ecdf; color: var(--accent-ink); }
-.badge.done { background: #e9f3ea; color: #2f6b3c; }
-.fav { position: absolute; right: 8px; top: 8px; width: 40px; height: 40px; border: 0; border-radius: 50%; background: rgba(253,251,247,.92); box-shadow: 0 1px 4px rgba(0,0,0,.08); display: grid; place-items: center; cursor: pointer; color: var(--ink-3); }
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 9px; }
+.foot .time { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+.swatches { display: flex; gap: 3px; min-width: 0; overflow: hidden; }
+.swatches i { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 -2px 3px rgba(0, 0, 0, .25), inset 0 2px 2px rgba(255, 255, 255, .55), 0 0 0 1px rgba(0, 0, 0, .06); }
+.card .bar { margin-top: 10px; }
+.tag { position: absolute; left: 10px; top: 10px; display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; letter-spacing: .02em; padding: 4px 9px; border-radius: 999px; background: rgba(255, 253, 249, .94); box-shadow: 0 1px 4px rgba(0, 0, 0, .1); color: var(--gold-ink); font-variant-numeric: tabular-nums; }
+.tag.done { color: var(--ok); }
+.tag svg { width: 12px; height: 12px; }
+.fav { position: absolute; right: 8px; top: 8px; width: 40px; height: 40px; border: 0; border-radius: 50%; background: rgba(255, 253, 249, .92); box-shadow: 0 1px 4px rgba(0, 0, 0, .1); display: grid; place-items: center; cursor: pointer; color: var(--ink-3); transition: transform .15s; }
+.fav:active { transform: scale(.9); }
 .fav svg { width: 19px; height: 19px; }
 .fav[aria-pressed="true"] { color: #d0456c; }
 .empty { text-align: center; color: var(--ink-2); margin-top: 40px; }
 
-.bar { height: 5px; border-radius: 3px; background: #ece4d5; overflow: hidden; }
-.bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #c9a15a, #e1c07a); border-radius: 3px; transition: width .3s ease; }
+.bar { height: 5px; border-radius: 3px; background: #ece3d3; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #c49a4f, #e3c27c); border-radius: 3px; transition: width .3s ease; }
 
-/* ---------------- play */
+/* ================= play ================= */
 #play { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); background: var(--bg); }
-.p-top { display: flex; user-select: none; -webkit-user-select: none; align-items: center; gap: 8px; padding: calc(6px + var(--st)) calc(10px + var(--sr)) 6px calc(10px + var(--sl)); background: rgba(246,241,232,.94); border-bottom: 1px solid #ece3d3; z-index: 3; }
+.p-top { display: flex; align-items: center; gap: 6px; padding: calc(6px + var(--st)) calc(8px + var(--sr)) 6px calc(8px + var(--sl)); background: rgba(250, 246, 238, .96); border-bottom: 1px solid #ebe2d1; z-index: 3; user-select: none; -webkit-user-select: none; }
 .p-title { flex: 1; min-width: 0; text-align: center; }
-.p-title h2 { font-family: var(--serif); font-weight: 500; font-size: 18px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.p-prog { display: flex; align-items: center; gap: 8px; justify-content: center; margin-top: 4px; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.p-prog .bar { width: min(160px, 40vw); }
+.p-title h2 { font-family: var(--display); font-weight: 500; font-size: 18px; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p-title p { margin: 1px 0 0; font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.ring-prog { position: relative; width: 44px; height: 44px; flex: none; }
+.ring-prog svg { width: 44px; height: 44px; transform: rotate(-90deg); }
+.ring-prog circle { fill: none; stroke-width: 4; }
+.ring-prog .track { stroke: #ebe2d2; }
+.ring-prog .fill { stroke: var(--gold); stroke-linecap: round; stroke-dasharray: 113.1; stroke-dashoffset: 113.1; transition: stroke-dashoffset .35s ease; }
+.ring-prog span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .icon-btn { width: 44px; height: 44px; border: 0; background: transparent; border-radius: 12px; display: grid; place-items: center; cursor: pointer; color: var(--ink); flex: none; }
-.icon-btn:hover { background: rgba(0,0,0,.04); }
+@media (hover: hover) { .icon-btn:hover { background: rgba(0, 0, 0, .045); } }
 .icon-btn svg, .tool svg { width: 22px; height: 22px; }
 
 .stage { position: relative; overflow: hidden; touch-action: none; min-height: 0; }
-#cv { position: absolute; inset: 0; display: block; touch-action: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; cursor: crosshair; -webkit-user-select: none; user-select: none; }
-.tools { position: absolute; right: calc(10px + var(--sr)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; padding: 6px; background: rgba(253,251,247,.88); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); backdrop-filter: blur(6px); }
-.tool { width: 42px; height: 42px; border-radius: 11px; border: 0; background: transparent; display: grid; place-items: center; cursor: pointer; color: var(--ink-2); }
-.tool:hover { background: #f1eadd; color: var(--ink); }
-.tool[aria-pressed="true"] { background: var(--ink); color: #fff; }
-@media (max-width: 600px) and (orientation: portrait) { .tools { top: auto; bottom: 8px; transform: translateX(50%); right: 50%; flex-direction: row; } }
-@media (max-height: 520px) and (orientation: landscape) { .tools { top: 8px; transform: none; } .tool { width: 38px; height: 38px; } .tools { gap: 2px; } }
+#cv { position: absolute; inset: 0; display: block; touch-action: none; cursor: crosshair; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 
-.toast { position: absolute; left: 50%; top: 14px; transform: translate(-50%, -8px); background: rgba(46,40,32,.88); color: #fff; padding: 9px 16px; border-radius: 999px; font-size: 13.5px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; white-space: nowrap; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; }
+.tools { position: absolute; right: calc(12px + var(--sr)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; background: rgba(255, 253, 249, .9); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 2; }
+.mode { display: flex; flex-direction: column; gap: 2px; background: var(--bg-2); border-radius: 13px; padding: 2px; }
+.tool-sep { width: 24px; height: 1px; background: var(--line); margin: 3px 0; }
+.tool { position: relative; width: 42px; height: 42px; border-radius: 11px; border: 0; background: transparent; display: grid; place-items: center; cursor: pointer; color: var(--ink-2); transition: background .15s, color .15s; }
+@media (hover: hover) { .tool:hover { background: #f1e9db; color: var(--ink); } }
+.mode .tool[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(70, 50, 20, .18); }
+.tool.accent { color: var(--gold-ink); }
+@media (hover: hover) and (min-width: 601px) {
+  .tool::after { content: attr(data-tip); position: absolute; right: calc(100% + 10px); top: 50%; transform: translateY(-50%); background: var(--ink); color: #fff; font-size: 12px; padding: 4px 9px; border-radius: 7px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .12s; }
+  .tool:hover::after { opacity: 1; transition-delay: .35s; }
+}
+@media (max-width: 600px) and (orientation: portrait) {
+  .tools { top: auto; bottom: 10px; right: 50%; transform: translateX(50%); flex-direction: row; }
+  .mode { flex-direction: row; }
+  .tool-sep { width: 1px; height: 24px; margin: 0 3px; }
+}
+@media (max-height: 520px) and (orientation: landscape) { .tools { top: 8px; transform: none; gap: 2px; } .tool { width: 36px; height: 36px; } }
+
+.minimap { position: absolute; left: calc(12px + var(--sl)); bottom: 12px; width: 112px; height: 112px; border-radius: 16px; background: rgba(255, 253, 249, .94); border: 1px solid var(--line); box-shadow: var(--shadow-1); overflow: hidden; z-index: 2; cursor: pointer; touch-action: none; animation: fadein .2s ease; }
+.minimap canvas { width: 100%; height: 100%; display: block; }
+.minimap i { position: absolute; border: 2px solid var(--gold); border-radius: 4px; background: rgba(184, 137, 59, .12); pointer-events: none; }
+@media (max-width: 600px) and (orientation: portrait) { .minimap { bottom: auto; top: 10px; width: 92px; height: 92px; } }
+
+.toast { position: absolute; left: 50%; top: 14px; transform: translate(-50%, -8px); background: rgba(42, 36, 28, .9); color: #fff; padding: 9px 16px; border-radius: 999px; font-size: 13.5px; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; white-space: nowrap; max-width: calc(100% - 24px); overflow: hidden; text-overflow: ellipsis; z-index: 3; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-.palette-bar { min-width: 0; user-select: none; -webkit-user-select: none; background: rgba(253,251,247,.97); border-top: 1px solid var(--line); padding: 8px 0 calc(8px + var(--sb)); z-index: 3; box-shadow: 0 -4px 18px rgba(80,60,30,.05); }
-.palette { display: flex; gap: 6px; overflow-x: auto; padding: 6px calc(12px + var(--sr)) 4px calc(12px + var(--sl)); scroll-snap-type: x proximity; scrollbar-width: thin; justify-content: safe center; }
-.pal { flex: none; width: 66px; padding: 6px 2px 6px; border: 1.5px solid transparent; background: transparent; border-radius: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; scroll-snap-align: center; position: relative; transition: transform .18s cubic-bezier(.3,1.4,.5,1), background .15s, border-color .15s; }
-.pal canvas { width: 44px; height: 44px; display: block; }
+.palette-bar { min-width: 0; user-select: none; -webkit-user-select: none; background: rgba(255, 253, 249, .97); border-top: 1px solid var(--line); padding: 6px 0 calc(6px + var(--sb)); z-index: 3; box-shadow: 0 -6px 20px rgba(70, 50, 20, .06); }
+.sel-pill { display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); min-height: 22px; padding: 0 12px; white-space: nowrap; overflow: hidden; }
+.sel-pill b { color: var(--ink); font-weight: 600; }
+.sel-pill i { width: 10px; height: 10px; border-radius: 50%; flex: none; box-shadow: inset 0 -2px 2px rgba(0, 0, 0, .25), 0 0 0 1px rgba(0, 0, 0, .08); }
+.palette { display: flex; gap: 4px; overflow-x: auto; padding: 6px calc(12px + var(--sr)) 4px calc(12px + var(--sl)); scroll-snap-type: x proximity; scrollbar-width: none; justify-content: safe center; }
+.palette::-webkit-scrollbar { display: none; }
+.pal { flex: none; width: 64px; padding: 4px 2px 5px; border: 1.5px solid transparent; background: transparent; border-radius: 18px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 1px; scroll-snap-align: center; position: relative; transition: transform .2s cubic-bezier(.3, 1.4, .5, 1), background .15s, border-color .15s, box-shadow .15s; }
+.pal .gem { position: relative; width: 50px; height: 50px; display: grid; place-items: center; }
+.pal .gem canvas { width: 38px; height: 38px; display: block; position: relative; }
+.pal .gem svg { position: absolute; inset: 0; width: 50px; height: 50px; transform: rotate(-90deg); }
+.pal .gem circle { fill: none; stroke-width: 3; }
+.pal .gem .track { stroke: #eee6d8; }
+.pal .gem .fill { stroke: var(--gold); stroke-linecap: round; stroke-dasharray: 144.5; transition: stroke-dashoffset .3s ease; }
 .pal .num { font-weight: 700; font-size: 15px; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .pal .left { font-size: 11px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.pal:hover { background: #f5efe4; }
-.pal[aria-checked="true"] { background: #fff; border-color: var(--ink); transform: translateY(-3px); box-shadow: 0 6px 14px rgba(80,60,30,.14); }
+@media (hover: hover) { .pal:hover { background: #f6f0e5; } }
+.pal[aria-checked="true"] { background: #fff; border-color: var(--ink); transform: translateY(-4px); box-shadow: 0 8px 18px rgba(70, 50, 20, .16); }
 .pal[aria-checked="true"]::after { content: ""; position: absolute; bottom: -1px; left: 22px; right: 22px; height: 3px; border-radius: 2px; background: var(--ink); }
-.pal.done canvas { opacity: .45; }
-.pal.done .left { color: #2f6b3c; font-weight: 600; }
-.pal .check { position: absolute; top: 4px; right: 8px; width: 18px; height: 18px; border-radius: 50%; background: #3d8a51; color: #fff; display: none; place-items: center; }
+.pal.done .gem canvas { opacity: .5; }
+.pal.done .fill { stroke: var(--ok); }
+.pal.done .left { color: var(--ok); font-weight: 600; }
+.pal .check { position: absolute; top: 2px; right: 6px; width: 18px; height: 18px; border-radius: 50%; background: var(--ok); color: #fff; display: none; place-items: center; box-shadow: 0 0 0 2px #fff; }
 .pal.done .check { display: grid; }
 .pal .check svg { width: 11px; height: 11px; }
 .pal.pulse { animation: pulse .5s ease; }
-.pal.cheer canvas { animation: cheer .7s ease; }
-@keyframes pulse { 0%,100% { transform: translateY(0); } 30% { transform: translateY(-5px); } 60% { transform: translateY(1px); } }
-@keyframes cheer { 0% { transform: scale(1); } 40% { transform: scale(1.18) rotate(-6deg); } 100% { transform: scale(1); } }
+.pal.cheer .gem { animation: cheer .7s ease; }
+@media (max-height: 700px) {
+  .pal { width: 58px; } .pal .gem { width: 44px; height: 44px; } .pal .gem svg { width: 44px; height: 44px; } .pal .gem canvas { width: 33px; height: 33px; }
+  .sel-pill { min-height: 18px; font-size: 12px; }
+}
 
-.menu { position: absolute; top: calc(56px + var(--st)); right: calc(10px + var(--sr)); width: min(300px, calc(100vw - 20px)); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 12px 40px rgba(60,40,20,.18); padding: 8px; z-index: 10; }
+.menu { position: absolute; top: calc(58px + var(--st)); right: calc(10px + var(--sr)); width: min(320px, calc(100vw - 20px)); background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-2); padding: 8px; z-index: 10; animation: rise .2s ease; }
 .menu .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 46px; padding: 6px 10px; border-radius: 10px; font-size: 14.5px; width: 100%; cursor: pointer; }
 .menu .btn-row { border: 0; background: transparent; text-align: left; }
-.menu .row:hover { background: #f6f0e5; }
+@media (hover: hover) { .menu .row:hover { background: #f6f0e5; } }
 .menu hr { border: 0; border-top: 1px solid var(--line); margin: 6px 4px; }
-.menu .danger { color: #a23a3a; }
-.switch { appearance: none; width: 40px; height: 24px; border-radius: 12px; background: #ddd3c3; position: relative; cursor: pointer; flex: none; transition: background .15s; margin: 0; }
-.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform .15s; }
-.switch:checked { background: #3d7a52; }
-.switch:checked::after { transform: translateX(16px); }
+.menu .danger { color: var(--danger); }
+.switch { appearance: none; -webkit-appearance: none; width: 42px; height: 25px; border-radius: 13px; background: #ddd3c3; position: relative; cursor: pointer; flex: none; transition: background .15s; margin: 0; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 19px; height: 19px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .2); transition: transform .15s; }
+.switch:checked { background: var(--ok); }
+.switch:checked::after { transform: translateX(17px); }
 
-/* ---------------- modal */
-.modal { position: fixed; inset: 0; background: rgba(46,40,32,.22); display: grid; place-items: end center; z-index: 20; padding: 16px; padding-bottom: calc(16px + var(--sb)); animation: fade .25s ease; }
+/* coach marks */
+.coach { position: absolute; inset: 0; z-index: 15; background: rgba(42, 36, 28, .28); display: grid; place-items: center; padding: 16px; animation: fadein .25s ease; }
+.coach-card { background: var(--surface); border-radius: 24px; box-shadow: var(--shadow-2); padding: 22px 22px 18px; width: min(430px, 100%); max-height: calc(100% - 16px); overflow-y: auto; animation: rise .35s cubic-bezier(.2, 1, .3, 1); }
+.coach-card h3 { font-family: var(--display); font-weight: 500; font-size: 24px; margin: 0 0 12px; }
+.steps { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 12px; }
+.steps li { display: flex; gap: 12px; align-items: flex-start; }
+.steps b { font-size: 15px; }
+.steps p { margin: 2px 0 0; font-size: 13.5px; color: var(--ink-2); line-height: 1.45; }
+.step-ico { flex: none; width: 40px; height: 40px; border-radius: 12px; background: var(--gold-soft); color: var(--gold-ink); display: grid; place-items: center; }
+.step-ico svg { width: 22px; height: 22px; }
+
+/* ================= modal ================= */
+.modal { position: fixed; inset: 0; background: rgba(42, 36, 28, .26); display: grid; place-items: end center; z-index: 20; padding: 16px; padding-bottom: calc(16px + var(--sb)); animation: fadein .25s ease; }
 .modal.clear { background: transparent; pointer-events: none; }
 .modal.clear .sheet { pointer-events: auto; }
 @media (min-width: 700px) { .modal:not(.clear) { place-items: center; } }
-.sheet { max-height: calc(100% - 8px); overflow-y: auto; background: var(--surface); border-radius: 22px; box-shadow: 0 20px 60px rgba(60,40,20,.25); padding: 22px; width: min(420px, 100%); text-align: center; animation: rise .35s cubic-bezier(.2,1,.3,1); }
-.sheet h3 { font-family: var(--serif); font-weight: 500; font-size: 24px; margin: 4px 0 6px; }
+.sheet { max-height: calc(100% - 8px); overflow-y: auto; background: var(--surface); border-radius: 24px; box-shadow: var(--shadow-2); padding: 22px; width: min(440px, 100%); text-align: center; animation: rise .35s cubic-bezier(.2, 1, .3, 1); }
+.sheet h3 { font-family: var(--display); font-weight: 500; font-size: 26px; margin: 4px 0 6px; }
 .sheet p { color: var(--ink-2); margin: 0 0 16px; font-size: 14.5px; line-height: 1.45; }
-.sheet .eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: var(--accent-ink); }
+.sheet .eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: var(--gold-ink); font-weight: 600; }
+.done-stats { display: flex; justify-content: center; gap: 8px; margin: 4px 0 18px; }
+.done-stats div { background: var(--bg); border-radius: 14px; padding: 8px 14px; min-width: 88px; }
+.done-stats b { display: block; font-family: var(--display); font-weight: 500; font-size: 20px; font-variant-numeric: tabular-nums; }
+.done-stats span { font-size: 12px; color: var(--ink-2); }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-.btn { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 11px 18px; min-height: 44px; font-size: 14.5px; cursor: pointer; }
-.btn:hover { background: #f7f2e9; }
+.btn { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 11px 18px; min-height: 44px; font-size: 14.5px; font-weight: 500; cursor: pointer; }
+@media (hover: hover) { .btn:hover { background: #f7f2e9; } }
 .btn.primary { background: var(--ink); border-color: var(--ink); color: #fff; }
-.btn.primary:hover { background: #453c30; }
-.btn.danger { background: #a23a3a; border-color: #a23a3a; color: #fff; }
-@keyframes fade { from { opacity: 0; } }
-@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
+@media (hover: hover) { .btn.primary:hover { background: #453c30; } }
+.btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn.wide { width: 100%; }
+.export-img { display: block; width: 100%; max-width: 100%; aspect-ratio: 1; border-radius: 14px; margin: 4px 0 12px; background: #f8f4ec; -webkit-touch-callout: default; }
+
+@keyframes fadein { from { opacity: 0; } }
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } }
+@keyframes shimmer { to { background-position: -200% 0; } }
+@keyframes pulse { 0%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } 60% { transform: translateY(1px); } }
+@keyframes cheer { 0% { transform: scale(1); } 40% { transform: scale(1.2) rotate(-8deg); } 100% { transform: scale(1); } }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 .reduced *, .reduced *::before, .reduced *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
-
-/* compact chrome on short phones so the artwork keeps the space */
-@media (max-height: 700px) {
-  .pal { width: 58px; padding: 4px 2px; }
-  .pal canvas { width: 38px; height: 38px; }
-  .palette-bar { padding-top: 4px; }
-}
 
 </style>
 
 <div id="app">
   <!-- ============ GALLERY ============ -->
   <section id="gallery" class="screen" aria-label="Gallery">
-    <header class="g-head">
-      <div class="brand">
-        <svg class="brand-gem" viewBox="0 0 40 40" aria-hidden="true">
-          <path d="M20 3 35 14 20 37 5 14Z" fill="#2f6fe0"/><path d="M5 14h30L20 3Z" fill="#8fc6f2"/>
-          <path d="M12 14 20 3l8 11Z" fill="#d6e9fb"/><path d="M12 14h16l-8 23Z" fill="#1d4fb8"/>
-          <path d="M20 3 35 14 20 37 5 14Z" fill="none" stroke="#173f8f" stroke-width="1"/>
-        </svg>
-        <div>
-          <h1 class="wordmark">Lustra</h1>
-          <p class="tagline">Gem mosaics, one facet at a time</p>
+    <div class="g-wrap">
+      <header class="g-head">
+        <div class="brand">
+          <svg class="brand-gem" viewBox="0 0 40 40" aria-hidden="true">
+            <path d="M20 3 35 14 20 37 5 14Z" fill="#2f6fe0"/><path d="M5 14h30L20 3Z" fill="#8fc6f2"/>
+            <path d="M12 14 20 3l8 11Z" fill="#d6e9fb"/><path d="M12 14h16l-8 23Z" fill="#1d4fb8"/>
+            <path d="M20 3 35 14 20 37 5 14Z" fill="none" stroke="#173f8f" stroke-width="1"/>
+          </svg>
+          <div>
+            <h1 class="wordmark">Lustra</h1>
+            <p class="tagline">Gem mosaics, one facet at a time</p>
+          </div>
+        </div>
+        <div class="stats" aria-label="Your collection">
+          <div class="stat"><b id="st-done">0</b><span id="st-done-label">finished</span></div>
+          <div class="stat"><b id="st-gems">0</b><span>gems placed</span></div>
+        </div>
+      </header>
+
+      <section id="rail" class="rail" hidden aria-labelledby="rail-title">
+        <h2 class="sec-title" id="rail-title">Continue where you left off</h2>
+        <div class="rail-track" id="rail-track"></div>
+      </section>
+
+      <div class="filters" role="toolbar" aria-label="Filters">
+        <div class="seg" data-group="status" role="group" aria-label="Show">
+          <button data-v="all" aria-pressed="true">All</button>
+          <button data-v="progress" aria-pressed="false">In progress</button>
+          <button data-v="done" aria-pressed="false">Finished</button>
+          <button data-v="fav" aria-pressed="false">Favorites</button>
+        </div>
+        <div class="chips" data-group="diff" role="group" aria-label="Level">
+          <button class="chip" data-v="all" aria-pressed="true">Every level</button>
+          <button class="chip" data-v="Beginner" aria-pressed="false"><i class="pips" data-n="1"></i>Beginner</button>
+          <button class="chip" data-v="Medium" aria-pressed="false"><i class="pips" data-n="2"></i>Medium</button>
+          <button class="chip" data-v="Intricate" aria-pressed="false"><i class="pips" data-n="3"></i>Intricate</button>
+          <button class="chip" data-v="Expert" aria-pressed="false"><i class="pips" data-n="4"></i>Expert</button>
+          <button class="chip" data-v="Master" aria-pressed="false"><i class="pips" data-n="5"></i>Master</button>
+        </div>
+        <div class="seg small" data-group="cat" role="group" aria-label="Style">
+          <button data-v="all" aria-pressed="true">All styles</button>
+          <button data-v="mandala" aria-pressed="false">Mandalas</button>
+          <button data-v="geometric" aria-pressed="false">Patterns</button>
         </div>
       </div>
-    </header>
-    <section id="continue" class="continue" hidden></section>
-    <div class="filters" role="toolbar" aria-label="Filters">
-      <div class="chips" data-group="cat" role="group" aria-label="Type">
-        <button class="chip" data-v="all" aria-pressed="true">All</button>
-        <button class="chip" data-v="mandala" aria-pressed="false">Mandalas</button>
-        <button class="chip" data-v="geometric" aria-pressed="false">Geometric</button>
-      </div>
-      <div class="chips" data-group="diff" role="group" aria-label="Difficulty">
-        <button class="chip" data-v="all" aria-pressed="true">Any level</button>
-        <button class="chip" data-v="Beginner" aria-pressed="false">Beginner</button>
-        <button class="chip" data-v="Medium" aria-pressed="false">Medium</button>
-        <button class="chip" data-v="Intricate" aria-pressed="false">Intricate</button>
-        <button class="chip" data-v="Expert" aria-pressed="false">Expert</button>
-      </div>
-      <div class="chips" data-group="status" role="group" aria-label="Progress">
-        <button class="chip" data-v="all" aria-pressed="true">Everything</button>
-        <button class="chip" data-v="new" aria-pressed="false">Not started</button>
-        <button class="chip" data-v="progress" aria-pressed="false">In progress</button>
-        <button class="chip" data-v="done" aria-pressed="false">Completed</button>
-        <button class="chip" data-v="fav" aria-pressed="false">Favorites</button>
-      </div>
+
+      <main id="sections"></main>
+      <p id="empty" class="empty" hidden>Nothing here yet. Try another filter.</p>
     </div>
-    <div id="grid" class="grid"></div>
-    <p id="empty" class="empty" hidden>No artworks match these filters.</p>
   </section>
 
   <!-- ============ PLAY ============ -->
@@ -209,31 +310,55 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
       <button class="icon-btn" id="btn-back" aria-label="Back to gallery"></button>
       <div class="p-title">
         <h2 id="art-name"></h2>
-        <div class="p-prog"><div class="bar"><i id="prog-fill"></i></div><span id="prog-txt">0%</span></div>
+        <p id="art-sub"></p>
+      </div>
+      <div class="ring-prog" id="prog" role="img" aria-label="0% complete">
+        <svg viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18" class="track"/><circle cx="22" cy="22" r="18" class="fill" id="prog-arc"/></svg>
+        <span id="prog-txt">0%</span>
       </div>
       <button class="icon-btn" id="btn-menu" aria-label="Settings and options" aria-haspopup="true" aria-expanded="false"></button>
     </header>
     <div class="stage" id="stage">
       <canvas id="cv" aria-label="Artwork canvas. Select a numbered gem below, then tap matching numbered sockets."></canvas>
       <div class="tools" role="toolbar" aria-label="Canvas tools">
-        <button class="tool" id="t-mode" aria-label="Pan mode" aria-pressed="false"></button>
-        <button class="tool" id="t-zin" aria-label="Zoom in"></button>
-        <button class="tool" id="t-zout" aria-label="Zoom out"></button>
-        <button class="tool" id="t-fit" aria-label="Fit artwork"></button>
-        <button class="tool" id="t-hint" aria-label="Hint: show a remaining socket"></button>
+        <div class="mode" role="group" aria-label="Touch mode">
+          <button class="tool" id="t-paint" aria-pressed="true" aria-label="Place gems" data-tip="Place"></button>
+          <button class="tool" id="t-pan" aria-pressed="false" aria-label="Move the canvas" data-tip="Move"></button>
+        </div>
+        <span class="tool-sep" aria-hidden="true"></span>
+        <button class="tool" id="t-zin" aria-label="Zoom in" data-tip="Zoom in"></button>
+        <button class="tool" id="t-zout" aria-label="Zoom out" data-tip="Zoom out"></button>
+        <button class="tool" id="t-fit" aria-label="Show whole artwork" data-tip="Whole view"></button>
+        <button class="tool accent" id="t-hint" aria-label="Find a gem spot" data-tip="Find"></button>
       </div>
+      <div class="minimap" id="minimap" hidden aria-label="Overview map: tap to jump"><canvas id="mm"></canvas><i id="mm-view"></i></div>
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
     </div>
     <footer class="palette-bar">
+      <div class="sel-pill" id="sel-pill" aria-live="polite"></div>
       <div id="palette" class="palette" role="radiogroup" aria-label="Gem palette"></div>
     </footer>
     <div id="menu" class="menu" hidden role="menu">
       <label class="row"><span>Sound</span><input type="checkbox" id="opt-sound" class="switch"></label>
-      <label class="row"><span>Auto-advance to next gem</span><input type="checkbox" id="opt-auto" class="switch"></label>
+      <label class="row"><span>Vibration</span><input type="checkbox" id="opt-vibe" class="switch"></label>
+      <label class="row"><span>Jump to next gem when one is done</span><input type="checkbox" id="opt-auto" class="switch"></label>
       <label class="row"><span>Reduce motion</span><input type="checkbox" id="opt-motion" class="switch"></label>
       <hr>
-      <button class="row btn-row" id="m-export">Save image (PNG)</button>
+      <button class="row btn-row" id="m-help">How to play</button>
+      <button class="row btn-row" id="m-export">Save image</button>
       <button class="row btn-row danger" id="m-restart">Restart this artwork…</button>
+    </div>
+    <div id="coach" class="coach" hidden role="dialog" aria-modal="true" aria-labelledby="coach-title">
+      <div class="coach-card">
+        <h3 id="coach-title">How to play</h3>
+        <ol class="steps">
+          <li><span class="step-ico" data-ico="palette"></span><div><b>Pick a gem</b><p>Choose a numbered gem from the tray at the bottom.</p></div></li>
+          <li><span class="step-ico" data-ico="tap"></span><div><b>Tap matching numbers</b><p>Spots with that number light up. Tap one, or drag across several to fill them in one stroke.</p></div></li>
+          <li><span class="step-ico" data-ico="zoom"></span><div><b>Zoom in for detail</b><p>Pinch or scroll to zoom. Use two fingers, the Move tool or Space + drag to look around.</p></div></li>
+          <li><span class="step-ico" data-ico="find"></span><div><b>Stuck?</b><p>Find shows you a spot that still needs the selected gem. Progress saves automatically.</p></div></li>
+        </ol>
+        <button class="btn primary wide" id="coach-ok">Start placing gems</button>
+      </div>
     </div>
   </section>
 
@@ -1247,7 +1372,7 @@ const CATALOG = [
   { id: 'rose-window', version: 1, name: 'Rose Window', category: 'mandala', difficulty: 'Intricate', build: roseWindow },
   { id: 'kaleidoscope', version: 1, name: 'Midnight Kaleidoscope', category: 'mandala', difficulty: 'Expert', build: kaleidoscope },
 ];
-const LEVEL = { Beginner: 0, Medium: 1, Intricate: 2, Expert: 3 };
+const LEVEL = { Beginner: 0, Medium: 1, Intricate: 2, Expert: 3, Master: 4 };
 CATALOG.sort((a, c) => LEVEL[a.difficulty] - LEVEL[c.difficulty]);
 
 const cache = new Map();
@@ -1276,13 +1401,498 @@ function getArtwork(id) {
 }
 
 function sessionLabel(n) {
-  if (n < 200) return 'Short session';
-  if (n < 500) return 'Relaxed session';
-  if (n < 1000) return 'Long session';
-  return 'Epic session';
+  if (n < 200) return 'About 10 min';
+  if (n < 500) return 'About 25 min';
+  if (n < 1000) return 'About 45 min';
+  if (n < 2000) return 'About 1½ hours';
+  return 'Several hours';
 }
 
-return { GEMS, CATALOG, getArtwork, sessionLabel };
+return { GEMS, Builder, polar, ring, fillRings, fold, inDisc, SQ3, square, CATALOG, LEVEL, getArtwork, sessionLabel };
+})();
+
+const __m_collection2 = (() => {
+// Collection 2: curves, fractals, symmetric packings, carpets and the Master tier.
+// Everything is deterministic (seeded PRNG), so socket ids stay stable.
+const { Builder, ring, fillRings, fold, inDisc, polar, GEMS, CATALOG, LEVEL, SQ3, square } = __m_artworks;
+
+const TAU = Math.PI * 2;
+
+Object.assign(GEMS, {
+  gold: { name: 'Gold', hex: '#d6a737' },
+  pearl: { name: 'Pearl', hex: '#efe6ea', tones: ['#7f7079', '#b9aab3', '#e8dde3', '#f8f2f5', '#ffffff'] },
+  indigo: { name: 'Indigo', hex: '#3b3fa0' },
+  fuchsia: { name: 'Fuchsia', hex: '#c8307c' },
+  lime: { name: 'Lime', hex: '#96c63c' },
+});
+
+function rng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Place gems along a parametric curve at even arc-length spacing, aligned to the tangent.
+function alongCurve(b, f, t0, t1, step, shape, w, h, pal, { force = false, gap = 0.3, samples = 6000 } = {}) {
+  let [px, py] = f(t0), acc = step, i = 0;
+  for (let k = 1; k <= samples; k++) {
+    const t = t0 + ((t1 - t0) * k) / samples;
+    const [x, y] = f(t);
+    const dx = x - px, dy = y - py;
+    acc += Math.hypot(dx, dy);
+    if (acc >= step) {
+      acc = 0;
+      const p = pal(t, i++, x, y);
+      if (p != null) b.add(shape, x, y, w, h, Math.atan2(dx, -dy), p, { force, gap });
+    }
+    px = x; py = y;
+  }
+}
+
+// Gems along the edges of a closed polygon.
+function alongPoly(b, pts, step, shape, w, h, p, opts = {}) {
+  for (let e = 0; e < pts.length; e++) {
+    const [ax, ay] = pts[e], [bx, by] = pts[(e + 1) % pts.length];
+    const len = Math.hypot(bx - ax, by - ay), n = Math.max(1, Math.round(len / step));
+    for (let k = 0; k < n; k++) {
+      const t = (k + 0.5) / n;
+      b.add(shape, ax + (bx - ax) * t, ay + (by - ay) * t, w, h, Math.atan2(bx - ax, -(by - ay)), p, { gap: 0.3, ...opts });
+    }
+  }
+}
+
+// Round gems on a hexagonal packing; fn(x, y) returns a palette index or null.
+function hexPack(b, pitch, N, size, fn, opts = {}) {
+  const rowH = pitch * SQ3 / 2;
+  for (let r = -N; r <= N; r++) for (let q = -N - Math.ceil(r / 2); q <= N - Math.floor(r / 2); q++) {
+    const x = pitch * (q + r / 2), y = rowH * r;
+    const p = fn(x, y);
+    if (p != null) b.add('round', x, y, size, size, Math.atan2(x, -y), p, { force: true, ...opts });
+  }
+}
+
+// Dihedral (k-fold, mirrored) greedy packing: each accepted gem is placed with its
+// whole orbit of 2k copies, so the result is perfectly symmetric.
+function orbitPack(b, { k, R, sizes, tries, seed, shapeOf, color, gap = 0.6 }) {
+  const rand = rng(seed), half = Math.PI / k;
+  sizes.forEach((size, si) => {
+    const n = tries[si];
+    for (let t = 0; t < n; t++) {
+      const r = Math.sqrt(rand()) * R, th = rand() * half;
+      const { shape, w, h } = shapeOf(size, rand, r);
+      if (r + Math.max(w, h) / 2 > R) continue;
+      const orbit = [];
+      for (let j = 0; j < k; j++) for (const m of [1, -1]) {
+        const tt = m * th + (j * TAU) / k;
+        const [x, y] = polar(r, tt);
+        orbit.push([x, y, tt]);
+      }
+      const circ = orbit.map(([x, y, tt]) => b.circlesOf(shape, x, y, w, h, tt));
+      if (b.collides(circ[0], gap)) continue;
+      let bad = false;
+      for (let o = 1; o < circ.length && !bad; o++)
+        for (const [x1, y1, r1] of circ[0]) for (const [x2, y2, r2] of circ[o])
+          if (Math.hypot(x1 - x2, y1 - y2) < r1 + r2 + gap) { bad = true; break; }
+      if (bad) continue;
+      const p = color(r, th, size, shape, rand);
+      for (const [x, y, tt] of orbit) b.add(shape, x, y, w, h, tt, p, { force: true });
+    }
+  });
+}
+
+function pascalMod(n, p) {
+  const T = [[1]];
+  for (let r = 1; r <= n; r++) {
+    const row = [1];
+    for (let q = 1; q < r; q++) row.push((T[r - 1][q - 1] + T[r - 1][q]) % p);
+    row.push(1); T.push(row);
+  }
+  return T;
+}
+
+const hexPlate = (R) => [0, 1, 2, 3, 4, 5].map((k) => [R * Math.cos((k * TAU) / 6), R * Math.sin((k * TAU) / 6)]);
+
+// ---------------------------------------------------------------- Beginner
+function petalClock() {
+  const b = new Builder();
+  const P = { sun: 0, cit: 1, coral: 2, cream: 3, honey: 4, cry: 5 };
+  b.add('round', 0, 0, 60, 60, 0, P.cit, { force: true });
+  ring(b, 96, 12, 'teardrop', 34, 60, P.sun);
+  ring(b, 70, 12, 'round', 14, 14, P.cream, { phase: 0.5, force: false, gap: 0.4 });
+  ring(b, 168, 24, 'marquise', 16, 44, P.coral);
+  ring(b, 148, 24, 'round', 12, 12, P.cream, { phase: 0.5, force: false, gap: 0.4 });
+  ring(b, 214, 48, 'round', 18, 18, (i) => (i % 2 ? P.honey : P.cit));
+  ring(b, 258, 12, 'oval', 26, 44, P.sun);
+  ring(b, 258, 12, 'rhombus', 18, 30, P.coral, { phase: 0.5 });
+  ring(b, 258, 24, 'round', 10, 10, P.cry, { phase: 0.25, force: false, gap: 0.4 });
+  return { b, palette: ['sunset', 'citrine', 'coral', 'cream', 'honey', 'crystal'], plate: { type: 'circle', r: 292 } };
+}
+
+function seedOfLife() {
+  const b = new Builder();
+  const P = { sky: 0, royal: 1, ice: 2, cry: 3, gold: 4 };
+  b.add('round', 0, 0, 30, 30, 0, P.gold, { force: true });
+  const centers = [[0, 0], ...[0, 1, 2, 3, 4, 5].map((k) => polar(80, (k * TAU) / 6))];
+  centers.forEach(([cx, cy], c) => alongCurve(b, (t) => [cx + 80 * Math.cos(t), cy + 80 * Math.sin(t)], 0, TAU, 14.5, 'round', 12, 12,
+    () => (c === 0 ? P.gold : c % 2 ? P.sky : P.royal)));
+  ring(b, 46, 6, 'marquise', 14, 34, P.ice, { phase: 0.5, force: false, gap: 0.3 });
+  ring(b, 120, 6, 'marquise', 14, 34, P.ice, { force: false, gap: 0.3 });
+  ring(b, 138, 6, 'round', 14, 14, P.cry, { phase: 0.5, force: false, gap: 0.3 });
+  ring(b, 196, 24, 'teardrop', 18, 32, (i) => (i % 2 ? P.gold : P.royal));
+  ring(b, 226, 48, 'round', 12, 12, (i) => (i % 2 ? P.ice : P.cry), { force: false, gap: 0.4 });
+  return { b, palette: ['sky', 'royal', 'ice', 'crystal', 'gold'], plate: { type: 'circle', r: 250 } };
+}
+
+// ---------------------------------------------------------------- Medium
+function truchet() {
+  const b = new Builder();
+  const P = { em: 0, jade: 1, mint: 2, gold: 3, cream: 4 };
+  const T = 90, n = 6, h = (T * n) / 2, rand = rng(7);
+  const base = []; for (let k = 0; k < 9; k++) base.push(rand() < 0.5 ? 0 : 1);
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    const ii = Math.min(i, n - 1 - i), jj = Math.min(j, n - 1 - j);
+    const o = base[ii * 3 + jj] ^ (i >= n / 2 ? 1 : 0) ^ (j >= n / 2 ? 1 : 0);
+    const x0 = i * T - h, y0 = j * T - h;
+    const corners = o ? [[x0 + T, y0], [x0, y0 + T]] : [[x0, y0], [x0 + T, y0 + T]];
+    corners.forEach(([cx, cy], a) => {
+      const sx = cx === x0 ? 1 : -1, sy = cy === y0 ? 1 : -1;
+      for (let k = 0; k < 5; k++) {
+        const ph = ((k + 0.5) / 5) * (Math.PI / 2);
+        const x = cx + sx * (T / 2) * Math.cos(ph), y = cy + sy * (T / 2) * Math.sin(ph);
+        b.add('round', x, y, 12, 12, 0, ((i + j + a) & 1) ? P.em : P.jade, { force: true });
+      }
+    });
+    b.add('round', x0 + T / 2, y0 + T / 2, 14, 14, 0, P.mint, { force: true });
+  }
+  for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) b.add('square', i * T - h, j * T - h, 18, 18, Math.PI / 4, P.gold, { force: true });
+  // small accents in the open quarter of each tile (away from the arcs)
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    const ii = Math.min(i, n - 1 - i), jj = Math.min(j, n - 1 - j);
+    const o = base[ii * 3 + jj] ^ (i >= n / 2 ? 1 : 0) ^ (j >= n / 2 ? 1 : 0);
+    const x0 = i * T - h, y0 = j * T - h, free = o ? [[x0 + 14, y0 + 14], [x0 + T - 14, y0 + T - 14]] : [[x0 + T - 14, y0 + 14], [x0 + 14, y0 + T - 14]];
+    for (const [x, y] of free) b.add('round', x, y, 10, 10, 0, P.cream, { gap: 0.3 });
+  }
+  return { b, palette: ['emerald', 'jade', 'mint', 'gold', 'cream'], plate: { type: 'poly', pts: square(h + 16) } };
+}
+
+function starQuilt() {
+  const b = new Builder();
+  const P = { ruby: 0, rose: 1, mid: 2, sky: 3, gold: 4, cream: 5 };
+  const T = 110, n = 5, h = (T * n) / 2;
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    const cx = (i - 2) * T, cy = (j - 2) * T, pair = (i + j) & 1 ? [P.mid, P.sky] : [P.ruby, P.rose];
+    ring(b, 26, 8, 'rhombus', 21, 52, (k) => pair[k % 2], { cx, cy });
+    ring(b, 46, 8, 'round', 9, 9, P.cream, { cx, cy, phase: 0.5, force: false, gap: 0.3 });
+  }
+  for (let i = 0; i <= n; i++) for (let j = 0; j <= n; j++) b.add('square', i * T - h, j * T - h, 26, 26, Math.PI / 4, P.gold, { force: true });
+  for (let i = 0; i <= n; i++) for (let j = 0; j < n; j++) {
+    b.add('round', i * T - h, j * T - h + T / 2, 18, 18, 0, P.cream, { force: true });
+    b.add('round', j * T - h + T / 2, i * T - h, 18, 18, 0, P.cream, { force: true });
+  }
+  return { b, palette: ['ruby', 'rose', 'midnight', 'sky', 'gold', 'cream'], plate: { type: 'poly', pts: square(h + 20) } };
+}
+
+function twistedSquares() {
+  const b = new Builder();
+  const P = { ind: 0, royal: 1, sky: 2, ice: 3, cry: 4, fu: 5 };
+  b.add('round', 0, 0, 34, 34, 0, P.fu, { force: true });
+  const seq = [P.fu, P.ind, P.royal, P.sky, P.ice, P.cry, P.ice, P.sky, P.royal];
+  for (let k = 0; k < 9; k++) {
+    const hh = 30 + 26 * k, a = (k * 7.5 * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a);
+    const pts = [[-hh, -hh], [hh, -hh], [hh, hh], [-hh, hh]].map(([x, y]) => [x * c - y * s, x * s + y * c]);
+    alongPoly(b, pts, 20, 'square', 13, 13, seq[k]);
+  }
+  ring(b, 352, 64, 'round', 12, 12, (i) => (i % 2 ? P.fu : P.ind), { force: false, gap: 0.4 });
+  return { b, palette: ['indigo', 'royal', 'sky', 'ice', 'crystal', 'fuchsia'], plate: { type: 'circle', r: 372 } };
+}
+
+// ---------------------------------------------------------------- Intricate
+function spirograph() {
+  const b = new Builder();
+  const P = { royal: 0, aqua: 1, violet: 2, gold: 3, cry: 4, mid: 5 };
+  b.add('round', 0, 0, 40, 40, 0, P.gold, { force: true });
+  const hypo = (R, r, d, sc) => (t) => [sc * ((R - r) * Math.cos(t) + d * Math.cos(((R - r) / r) * t)), sc * ((R - r) * Math.sin(t) - d * Math.sin(((R - r) / r) * t))];
+  const epi = (R, r, d, sc) => (t) => [sc * ((R + r) * Math.cos(t) - d * Math.cos(((R + r) / r) * t)), sc * ((R + r) * Math.sin(t) - d * Math.sin(((R + r) / r) * t))];
+  alongCurve(b, epi(6, 1, 2, 14), 0, TAU, 13, 'round', 12, 12, () => P.violet, { samples: 3000 });
+  alongCurve(b, hypo(8, 3, 3, 28), 0, 6 * Math.PI, 15, 'oval', 12, 20, () => P.aqua, { samples: 12000 });
+  alongCurve(b, hypo(10, 3, 5, 27), 0, 6 * Math.PI, 16, 'oval', 12, 21, (t, i) => (i % 7 === 0 ? P.gold : P.royal), { samples: 16000 });
+  alongCurve(b, hypo(12, 5, 7, 23), 0, 10 * Math.PI, 15, 'round', 11, 11, () => P.mid, { samples: 20000 });
+  // soft crystal ground between the lines
+  for (let r = 30; r < 330; r += 14) {
+    const n = Math.floor((TAU * r) / 15);
+    for (let i = 0; i < n; i++) { const [x, y] = polar(r, ((i + (r % 28 ? 0.5 : 0)) * TAU) / n); b.add('round', x, y, 8, 8, 0, P.cry, { gap: 1.2 }); }
+  }
+  ring(b, 352, 72, 'round', 12, 12, (i) => (i % 2 ? P.cry : P.mid), { force: false, gap: 0.4 });
+  ring(b, 376, 36, 'teardrop', 14, 24, P.royal, { force: false, gap: 0.4 });
+  return { b, palette: ['royal', 'aqua', 'violet', 'gold', 'crystal', 'midnight'], plate: { type: 'circle', r: 398 } };
+}
+
+function roseCurve() {
+  const b = new Builder();
+  const P = { garnet: 0, rose: 1, blush: 2, gold: 3, violet: 4, cream: 5 };
+  const A = 285, A2 = 175;
+  b.add('round', 0, 0, 30, 30, 0, P.gold, { force: true });
+  alongCurve(b, (t) => [A * Math.cos(4 * t) * Math.cos(t), A * Math.cos(4 * t) * Math.sin(t)], 0, TAU, 13, 'round', 11, 11, () => P.garnet, { samples: 20000 });
+  hexPack(b, 15, 22, 13, (x, y) => {
+    const rho = Math.hypot(x, y), ph = Math.atan2(y, x);
+    if (rho < 22 || rho > A - 6) return null;
+    const lim = A * Math.abs(Math.cos(4 * ph));
+    if (rho < lim - 9) { const f = rho / lim; return f < 0.35 ? P.gold : f < 0.7 ? P.rose : P.blush; }
+    const lim2 = A2 * Math.abs(Math.cos(4 * (ph - Math.PI / 8)));
+    if (rho < lim2 - 4 && rho > lim + 9) return rho < lim2 - 22 ? P.violet : P.cream;
+    return null;
+  }, { force: false, gap: 0.3 });
+  ring(b, 300, 64, 'round', 12, 12, (i) => (i % 2 ? P.rose : P.gold), { force: false, gap: 0.4 });
+  return { b, palette: ['garnet', 'rose', 'blush', 'gold', 'violet', 'cream'], plate: { type: 'circle', r: 318 } };
+}
+
+function shatteredPrism() {
+  const b = new Builder();
+  const P = { fu: 0, violet: 1, sky: 2, aqua: 3, gold: 4, cry: 5, ind: 6 };
+  b.add('round', 0, 0, 56, 56, 0, P.cry, { force: true });
+  orbitPack(b, {
+    k: 8, R: 330, seed: 11,
+    sizes: [48, 38, 30, 24, 19, 15, 12], tries: [40, 90, 200, 400, 800, 1400, 2400],
+    shapeOf: (sz, rand) => sz >= 30 ? (rand() < 0.5 ? { shape: 'marquise', w: sz * 0.5, h: sz } : { shape: 'round', w: sz * 0.8, h: sz * 0.8 })
+      : sz >= 19 ? (rand() < 0.4 ? { shape: 'teardrop', w: sz * 0.62, h: sz } : { shape: 'round', w: sz, h: sz }) : { shape: 'round', w: sz, h: sz },
+    color: (r, th, sz) => sz >= 38 ? P.fu : sz >= 30 ? P.violet : sz >= 24 ? (r < 200 ? P.sky : P.aqua) : sz >= 19 ? P.gold : sz >= 15 ? (r < 210 ? P.cry : P.ind) : P.aqua,
+  });
+  ring(b, 342, 64, 'round', 12, 12, (i) => (i % 2 ? P.fu : P.ind), { force: false, gap: 0.4 });
+  return { b, palette: ['fuchsia', 'violet', 'sky', 'aqua', 'gold', 'crystal', 'indigo'], plate: { type: 'circle', r: 362 } };
+}
+
+function nautilus() {
+  const b = new Builder();
+  const P = { teal: 0, aqua: 1, sand: 2, coral: 3, cream: 4, cry: 5 };
+  b.add('round', 0, 0, 40, 40, 0, P.coral, { force: true });
+  const GA = Math.PI * (3 - Math.sqrt(5));
+  for (let i = 3; i < 800; i++) {
+    const r = 3.2 * Math.pow(i, 0.75);
+    if (r > 330) break;
+    const size = 0.8 * Math.sqrt(48.25 * Math.sqrt(i));
+    const p = i % 34 < 3 ? P.coral : i % 21 < 2 ? P.teal : i % 13 === 0 ? P.cry : r < 110 ? P.aqua : r < 220 ? P.sand : P.cream;
+    const [x, y] = polar(r, i * GA);
+    b.add('round', x, y, size, size, i * GA, p, { gap: 0.5, limit: inDisc(338) });
+  }
+  ring(b, 352, 48, 'teardrop', 16, 28, (i) => (i % 2 ? P.teal : P.coral), { force: false, gap: 0.4 });
+  return { b, palette: ['teal', 'aqua', 'sand', 'coral', 'cream', 'crystal'], plate: { type: 'circle', r: 374 } };
+}
+
+// ---------------------------------------------------------------- Expert
+function apollonian() {
+  const b = new Builder();
+  const P = { sap: 0, royal: 1, sky: 2, aqua: 3, ice: 4, pearl: 5, gold: 6, sil: 7 };
+  b.add('round', 0, 0, 100, 100, 0, P.sap, { force: true });
+  orbitPack(b, {
+    k: 6, R: 380, seed: 3,
+    sizes: [78, 60, 47, 38, 31, 26, 22, 18.5, 15.5, 13, 11.5, 10],
+    tries: [60, 120, 240, 400, 700, 1000, 1500, 2200, 3000, 4000, 5000, 6000],
+    shapeOf: (sz) => ({ shape: 'round', w: sz, h: sz }),
+    color: (r, th, sz) => sz >= 60 ? P.royal : sz >= 47 ? P.sky : sz >= 38 ? P.aqua : sz >= 31 ? P.ice : sz >= 26 ? P.pearl : sz >= 22 ? P.gold : sz >= 15 ? (r < 250 ? P.pearl : P.sky) : r < 200 ? P.sil : P.ice,
+  });
+  return { b, palette: ['sapphire', 'royal', 'sky', 'aqua', 'ice', 'pearl', 'gold', 'silver'], plate: { type: 'circle', r: 398 } };
+}
+
+function sierpinski() {
+  const b = new Builder();
+  const P = { cream: 0, mid: 1, gold: 2, fu: 3, coral: 4, violet: 5 };
+  const n = 48, s = 8.5, T = pascalMod(n, 4);
+  const gw = SQ3 * s * 0.92, gh = 2 * s * 0.92, y0 = -1.5 * s * (n - 1) / 2;
+  for (let r = 0; r < n; r++) for (let q = 0; q <= r; q++) {
+    const v = T[r][q], band = Math.floor(r / 12) % 2;
+    const p = v === 0 ? P.cream : v === 2 ? P.mid : v === 1 ? (band ? P.fu : P.gold) : (band ? P.violet : P.coral);
+    b.add('hexagon', s * SQ3 * (q - r / 2), y0 + 1.5 * s * r, gw, gh, 0, p, { force: true });
+  }
+  const top = y0 - 2.2 * s, bot = y0 + 1.5 * s * (n - 1) + 1.6 * s, half = (bot - top) / SQ3;
+  return { b, palette: ['cream', 'midnight', 'gold', 'fuchsia', 'coral', 'violet'], plate: { type: 'poly', pts: [[0, top], [half, bot], [-half, bot]] } };
+}
+
+// Persian-style carpet on a square grid of square-cut gems (4-fold mirror symmetric).
+function carpet(n, rich) {
+  const b = new Builder();
+  const P = { ruby: 0, mid: 1, gold: 2, cream: 3, teal: 4, garnet: 5, sky: 6 };
+  const pitch = 15, size = 13.6, B = rich ? 9 : 7, F = n / 2 - B, M = F * 0.62;
+  for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+    const u = i - (n - 1) / 2, v = j - (n - 1) / 2, a = Math.abs(u), c = Math.abs(v);
+    const m = Math.min(i, j, n - 1 - i, n - 1 - j);
+    let p;
+    if (m < B) {
+      const t = m === Math.min(i, n - 1 - i) ? Math.min(j, n - 1 - j) : Math.min(i, n - 1 - i);
+      if (m === 0 || m === B - 1) p = P.mid;
+      else if (m === 1 || m === B - 2) p = P.gold;
+      else p = (t + m) % 4 < 2 ? P.teal : (rich && (t - m) % 6 === 0 ? P.gold : P.cream);
+    } else {
+      const L1 = a + c, Linf = Math.max(a, c), cl = (F - a) + (F - c);
+      const rho = Math.hypot(a, c), ph = Math.atan2(c, a);
+      if (L1 <= M) {
+        if (L1 < 2) p = P.gold;
+        else if (Math.round(L1) % 5 === 0) p = P.mid;
+        else if (Math.round(Linf) % 3 === 0) p = P.teal;
+        else p = Math.floor(L1 / 5) % 2 ? P.cream : P.garnet;
+      } else if (L1 <= M + 1.2) p = P.gold;
+      else if (rich && rho < M * 1.02 + M * 0.22 * Math.abs(Math.cos(4 * ph))) p = rho > M * 0.98 + M * 0.22 * Math.abs(Math.cos(4 * ph)) ? P.gold : P.sky;
+      else if (cl <= M * 0.5) p = Math.round(cl) % 3 === 0 ? P.gold : P.garnet;
+      else if (cl <= M * 0.5 + 1.2) p = P.teal;
+      else {
+        const dm = Math.abs((Math.round(a) % 8) - 4) + Math.abs((Math.round(c) % 8) - 4);
+        p = dm === 0 ? P.gold : dm === 1 ? P.cream : P.ruby;
+      }
+    }
+    b.add('square', u * pitch, v * pitch, size, size, 0, p, { force: true });
+  }
+  return { b, palette: ['ruby', 'midnight', 'gold', 'cream', 'teal', 'garnet', 'sky'], plate: { type: 'poly', pts: square((n * pitch) / 2 + 10) } };
+}
+
+function interference() {
+  const b = new Builder();
+  const P = { sap: 0, royal: 1, sky: 2, cream: 3, sand: 4, champ: 5, mid: 6 };
+  const lam = 46;
+  hexPack(b, 16, 24, 14.6, (x, y) => {
+    if (Math.hypot(x, y) > 330) return null;
+    const d1 = Math.hypot(x + 80, y), d2 = Math.hypot(x - 80, y);
+    const v = Math.floor((d1 + d2) / lam), w = Math.floor((d1 - d2) / lam);
+    const idx = ((v % 3) + 3) % 3;
+    return ((v + w) & 1) ? [P.sap, P.royal, P.sky][idx] : [P.cream, P.sand, P.champ][idx];
+  });
+  ring(b, 348, 72, 'round', 13, 13, P.mid, { force: false, gap: 0.4 });
+  return { b, palette: ['sapphire', 'royal', 'sky', 'cream', 'sand', 'champagne', 'midnight'], plate: { type: 'circle', r: 366 } };
+}
+
+// ---------------------------------------------------------------- Master
+function cathedralRose() {
+  const b = new Builder();
+  const P = { ruby: 0, royal: 1, gold: 2, em: 3, mid: 4, cry: 5, garnet: 6, sky: 7 };
+  b.add('round', 0, 0, 70, 70, 0, P.gold, { force: true });
+  ring(b, 62, 12, 'teardrop', 22, 38, P.ruby);
+  ring(b, 92, 24, 'round', 12, 12, P.cry);
+  ring(b, 132, 24, 'marquise', 16, 48, P.royal);
+  ring(b, 122, 24, 'round', 10, 10, P.gold, { phase: 0.5, force: false, gap: 0.3 });
+  const sats = [];
+  for (let k = 0; k < 12; k++) {
+    const st = (k * TAU) / 12, [cx, cy] = polar(262, st); sats.push([cx, cy]);
+    b.add('round', cx, cy, 26, 26, 0, P.cry, { force: true });
+    ring(b, 28, 8, 'marquise', 10, 26, k % 2 ? P.em : P.ruby, { cx, cy, start: st });
+    ring(b, 46, 12, 'round', 10, 10, P.gold, { cx, cy, start: st });
+  }
+  ring(b, 262, 12, 'teardrop', 20, 36, P.sky, { phase: 0.5 });
+  ring(b, 190, 12, 'round', 18, 18, P.garnet, { phase: 0.5 });
+  ring(b, 342, 12, 'round', 20, 20, P.garnet, { phase: 0.5 });
+  const glass = (r, th) => {
+    const [x, y] = polar(r, th);
+    if (Math.min(...sats.map(([cx, cy]) => Math.hypot(x - cx, y - cy))) < 58) return P.mid;
+    if (r < 205) return fold(th, 24) > 0.55 ? P.royal : P.mid;
+    if (r < 330) { const f = fold(th, 12); return f > 0.7 ? P.sky : f > 0.45 ? P.royal : P.mid; }
+    if (r < 362) return P.gold;
+    if (r < 480) { const f2 = fold(th, 24), e = (r - 362) / 140; return f2 > e ? P.ruby : f2 > e - 0.12 ? P.gold : P.mid; }
+    if (r < 500) return P.mid;
+    return P.garnet;
+  };
+  fillRings(b, 150, 526, 14, glass, { limit: inDisc(526), sym: 12 });
+  ring(b, 546, 96, 'teardrop', 12, 22, (i) => (i % 2 ? P.gold : P.ruby), { force: false, gap: 0.3 });
+  return { b, palette: ['ruby', 'royal', 'gold', 'emerald', 'midnight', 'crystal', 'garnet', 'sky'], plate: { type: 'circle', r: 566 } };
+}
+
+function grandLotus() {
+  const b = new Builder();
+  const P = { rose: 0, blush: 1, fu: 2, mint: 3, em: 4, gold: 5, cream: 6, cry: 7 };
+  b.add('round', 0, 0, 62, 62, 0, P.gold, { force: true });
+  ring(b, 64, 8, 'marquise', 24, 54, P.fu);
+  ring(b, 118, 16, 'marquise', 26, 70, P.rose, { phase: 0.5 });
+  ring(b, 190, 16, 'marquise', 34, 92, P.blush);
+  ring(b, 176, 16, 'marquise', 22, 60, P.fu, { phase: 0.5 });
+  ring(b, 272, 32, 'marquise', 22, 72, (i) => (i % 2 ? P.rose : P.blush));
+  ring(b, 346, 32, 'teardrop', 26, 48, P.em, { orient: 'in' });
+  ring(b, 340, 32, 'round', 12, 12, P.gold, { phase: 0.5, force: false, gap: 0.3 });
+  fillRings(b, 36, 378, 12, (r) => (r < 100 ? P.gold : r < 240 ? P.cream : P.mint), { limit: inDisc(378), sym: 16, gap: 1.08 });
+  fillRings(b, 384, 548, 16, (r, th) => {
+    const f = fold(th, 16), rr = (r - 384) / 164, hc = 0.15 + 0.7 * Math.sin((f * Math.PI) / 2);
+    if (rr < hc - 0.14) return P.rose;
+    if (rr < hc) return P.gold;
+    return rr > 0.86 ? P.em : P.mint;
+  }, { limit: inDisc(548), sym: 16 });
+  ring(b, 564, 64, 'marquise', 12, 30, P.rose, { force: false, gap: 0.3 });
+  return { b, palette: ['rose', 'blush', 'fuchsia', 'mint', 'emerald', 'gold', 'cream', 'crystal'], plate: { type: 'circle', r: 586 } };
+}
+
+function infiniteKaleidoscope() {
+  const b = new Builder();
+  const P = { ind: 0, sap: 1, sky: 2, aqua: 3, mint: 4, gold: 5, fu: 6, cry: 7 };
+  b.add('round', 0, 0, 80, 80, 0, P.cry, { force: true });
+  orbitPack(b, {
+    k: 12, R: 560, seed: 29,
+    sizes: [56, 44, 34, 27, 22, 18, 15, 12.5, 11, 9.5], tries: [60, 120, 260, 500, 900, 1600, 2600, 4000, 5500, 7000],
+    shapeOf: (sz, rand) => {
+      if (sz >= 34) { const q = rand(); return q < 0.35 ? { shape: 'marquise', w: sz * 0.48, h: sz } : q < 0.7 ? { shape: 'teardrop', w: sz * 0.6, h: sz } : { shape: 'round', w: sz * 0.85, h: sz * 0.85 }; }
+      if (sz >= 22) return rand() < 0.3 ? { shape: 'rhombus', w: sz * 0.6, h: sz } : { shape: 'round', w: sz, h: sz };
+      return { shape: 'round', w: sz, h: sz };
+    },
+    color: (r, th, sz, shape) => {
+      if (sz >= 44) return shape === 'round' ? P.gold : P.fu;
+      if (sz >= 34) return P.sap;
+      if (sz >= 27) return r < 300 ? P.aqua : P.sky;
+      if (sz >= 22) return shape === 'rhombus' ? P.fu : P.mint;
+      if (sz >= 18) return P.gold;
+      if (sz >= 15) return r < 260 ? P.cry : P.sky;
+      return Math.floor(r / 90) % 2 ? P.ind : P.aqua;
+    },
+  });
+  ring(b, 574, 112, 'round', 12, 12, (i) => (i % 2 ? P.gold : P.ind), { force: false, gap: 0.3 });
+  return { b, palette: ['indigo', 'sapphire', 'sky', 'aqua', 'mint', 'gold', 'fuchsia', 'crystal'], plate: { type: 'circle', r: 594 } };
+}
+
+function pascalSnowflake() {
+  const b = new Builder();
+  const P = { mid: 0, sky: 1, aqua: 2, gold: 3, fu: 4, cry: 5 };
+  const N = 32, s = 8, T = pascalMod(N, 5);
+  const gw = SQ3 * s * 0.92, gh = 2 * s * 0.92;
+  for (let r = -N; r <= N; r++) for (let q = -N; q <= N; q++) {
+    const cs = [q, r, -q - r], abs = cs.map(Math.abs), d = Math.max(...abs);
+    if (d > N) continue;
+    const ci = abs.indexOf(d), a = abs[(ci + 1) % 3];
+    const v = d === 0 ? 5 : T[d][a];
+    const p = v === 5 ? P.cry : [P.mid, P.sky, P.aqua, P.gold, P.fu][v];
+    b.add('hexagon', s * SQ3 * (q + r / 2), s * 1.5 * r, gw, gh, 0, p, { force: true });
+  }
+  return { b, palette: ['midnight', 'sky', 'aqua', 'gold', 'fuchsia', 'crystal'], plate: { type: 'poly', pts: hexPlate(s * SQ3 * N + s * 1.9) } };
+}
+
+// ---------------------------------------------------------------- register
+CATALOG.push(
+  { id: 'petal-clock', version: 1, name: 'Petal Clock', category: 'mandala', difficulty: 'Beginner', build: petalClock },
+  { id: 'seed-of-life', version: 1, name: 'Seed of Life', category: 'geometric', difficulty: 'Medium', build: seedOfLife },
+  { id: 'truchet', version: 1, name: 'Truchet Garden', category: 'geometric', difficulty: 'Medium', build: truchet },
+  { id: 'star-quilt', version: 1, name: 'Star Quilt', category: 'geometric', difficulty: 'Medium', build: starQuilt },
+  { id: 'twisted-squares', version: 1, name: 'Twisted Squares', category: 'geometric', difficulty: 'Medium', build: twistedSquares },
+  { id: 'spirograph', version: 1, name: 'Spirograph', category: 'geometric', difficulty: 'Expert', build: spirograph },
+  { id: 'rose-curve', version: 1, name: 'Rose Curve', category: 'mandala', difficulty: 'Intricate', build: roseCurve },
+  { id: 'shattered-prism', version: 1, name: 'Shattered Prism', category: 'mandala', difficulty: 'Intricate', build: shatteredPrism },
+  { id: 'nautilus', version: 1, name: 'Golden Nautilus', category: 'mandala', difficulty: 'Intricate', build: nautilus },
+  { id: 'apollonian', version: 1, name: 'Apollonian Pearls', category: 'geometric', difficulty: 'Intricate', build: apollonian },
+  { id: 'sierpinski', version: 1, name: 'Sierpinski Triangle', category: 'geometric', difficulty: 'Expert', build: sierpinski },
+  { id: 'persian-medallion', version: 1, name: 'Persian Medallion', category: 'geometric', difficulty: 'Expert', build: () => carpet(36, false) },
+  { id: 'interference', version: 1, name: 'Interference', category: 'geometric', difficulty: 'Expert', build: interference },
+  { id: 'cathedral-rose', version: 1, name: 'Cathedral Rose', category: 'mandala', difficulty: 'Master', build: cathedralRose },
+  { id: 'grand-lotus', version: 1, name: 'Grand Lotus', category: 'mandala', difficulty: 'Master', build: grandLotus },
+  { id: 'infinite-kaleidoscope', version: 1, name: 'Infinite Kaleidoscope', category: 'mandala', difficulty: 'Master', build: infiniteKaleidoscope },
+  { id: 'pascal-snowflake', version: 1, name: 'Pascal Snowflake', category: 'geometric', difficulty: 'Master', build: pascalSnowflake },
+  { id: 'grand-carpet', version: 1, name: 'Grand Carpet', category: 'geometric', difficulty: 'Master', build: () => carpet(56, true) },
+);
+CATALOG.sort((a, c) => LEVEL[a.difficulty] - LEVEL[c.difficulty]);
+
+const COLLECTION_SIZE = CATALOG.length;
+
+return { COLLECTION_SIZE };
+})();
+
+const __m_meta = (() => {
+// Generated by tools/gen-meta.mjs. Do not edit.
+const META = {"frost-rosette":{"v":1,"n":113,"pal":["sapphire","ice","aqua","crystal","midnight"]},"lotus-wheel":{"v":1,"n":129,"pal":["rose","blush","mint","emerald","champagne","crystal"]},"snowflake":{"v":1,"n":157,"pal":["aqua","ice","lavender","crystal","mint"]},"compass-rose":{"v":1,"n":113,"pal":["turquoise","copper","sand","midnight","crystal"]},"petal-clock":{"v":1,"n":145,"pal":["sunset","citrine","coral","cream","honey","crystal"]},"ruby-teardrop":{"v":1,"n":481,"pal":["ruby","rose","blush","violet","crystal","garnet"]},"emerald-mosaic":{"v":1,"n":331,"pal":["emerald","teal","mint","champagne","forest","crystal"]},"moroccan-tile":{"v":1,"n":421,"pal":["turquoise","midnight","sand","copper","cream","crystal"]},"argyle":{"v":1,"n":313,"pal":["rose","blush","garnet","champagne","crystal"]},"hexagram":{"v":1,"n":181,"pal":["sapphire","royal","crystal","ice","midnight"]},"tumbling-blocks":{"v":1,"n":381,"pal":["ice","royal","midnight","cream","citrine","amber"]},"seed-of-life":{"v":1,"n":259,"pal":["sky","royal","ice","crystal","gold"]},"truchet":{"v":1,"n":517,"pal":["emerald","jade","mint","gold","cream"]},"star-quilt":{"v":1,"n":496,"pal":["ruby","rose","midnight","sky","gold","cream"]},"twisted-squares":{"v":1,"n":472,"pal":["indigo","royal","sky","ice","crystal","fuchsia"]},"sapphire-interlace":{"v":1,"n":895,"pal":["sapphire","royal","ice","aqua","crystal","midnight","silver"]},"sea-glass":{"v":1,"n":566,"pal":["teal","aqua","mint","ice","sand","crystal"]},"vortex":{"v":1,"n":841,"pal":["teal","aqua","lavender","violet","midnight","crystal"]},"rose-window":{"v":1,"n":829,"pal":["ruby","royal","citrine","emerald","midnight","crystal","garnet"]},"rose-curve":{"v":1,"n":811,"pal":["garnet","rose","blush","gold","violet","cream"]},"shattered-prism":{"v":1,"n":625,"pal":["fuchsia","violet","sky","aqua","gold","crystal","indigo"]},"nautilus":{"v":1,"n":503,"pal":["teal","aqua","sand","coral","cream","crystal"]},"apollonian":{"v":1,"n":529,"pal":["sapphire","royal","sky","aqua","ice","pearl","gold","silver"]},"amethyst-star":{"v":1,"n":1089,"pal":["amethyst","lavender","midnight","silver","plum","orchid","crystal"]},"amber-sunburst":{"v":1,"n":1661,"pal":["amber","citrine","coral","cream","honey","crystal","peach"]},"kaleidoscope":{"v":1,"n":1281,"pal":["midnight","sapphire","aqua","lavender","amethyst","silver","crystal"]},"spirograph":{"v":1,"n":1349,"pal":["royal","aqua","violet","gold","crystal","midnight"]},"sierpinski":{"v":1,"n":1176,"pal":["cream","midnight","gold","fuchsia","coral","violet"]},"persian-medallion":{"v":1,"n":1296,"pal":["ruby","midnight","gold","cream","teal","garnet"]},"interference":{"v":1,"n":1603,"pal":["sapphire","royal","sky","cream","sand","champagne","midnight"]},"cathedral-rose":{"v":1,"n":2917,"pal":["ruby","royal","gold","emerald","midnight","crystal","garnet","sky"]},"grand-lotus":{"v":1,"n":2404,"pal":["rose","blush","fuchsia","mint","emerald","gold","cream"]},"infinite-kaleidoscope":{"v":1,"n":2081,"pal":["indigo","sapphire","sky","aqua","gold","fuchsia","crystal"]},"pascal-snowflake":{"v":1,"n":3169,"pal":["midnight","sky","aqua","gold","fuchsia","crystal"]},"grand-carpet":{"v":1,"n":3136,"pal":["ruby","midnight","gold","cream","teal","garnet","sky"]}};
+
+return { META };
 })();
 
 const __m_store = (() => {
@@ -1761,8 +2371,14 @@ class Board {
       ctx.restore();
       again = true;
     }
+    if (this.h.onFrame) this.h.onFrame();
     if (again) this.render();
   }
+  centerOn(wx, wy, animate = false) {
+    const s = this.cam.s;
+    this.animateTo({ s, x: this.W / 2 - wx * s, y: this.H / 2 - wy * s }, animate);
+  }
+  get zoomRatio() { return this.cam.s / this.fitScale; }
 
   _buildLayer(now) {
     const W = this.W, H = this.H, dpr = this.dpr, cam = this.cam;
@@ -1836,7 +2452,16 @@ class Board {
   tryPlace(i, isTap) {
     if (i < 0 || this.filled[i]) return false;
     const g = this.art.sockets[i];
-    if (Math.min(g.w, g.h) * this.cam.s < 6) { this.h.onTooSmall && this.h.onTooSmall(); return false; }
+    if (Math.min(g.w, g.h) * this.cam.s < (isTap ? 12 : 6)) {
+      // too small to tap reliably: zoom in around the tapped gem instead
+      if (isTap) {
+        const c = this.cam, s = Math.min(this.maxScale, Math.max(c.s * 2.5, 30 / Math.min(g.w, g.h)));
+        const sx = c.x + g.x * c.s, sy = c.y + g.y * c.s;
+        this.animateTo({ s, x: sx - g.x * s, y: sy - g.y * s });
+      }
+      this.h.onTooSmall && this.h.onTooSmall(isTap);
+      return false;
+    }
     if (g.p !== this.sel) {
       if (isTap) { this.wobble = { i, t: performance.now() }; this.render(); this.h.onWrong && this.h.onWrong(g.p); }
       return false;
@@ -1989,10 +2614,11 @@ class Board {
   }
 }
 
-function renderThumb(art, size, filled) {
-  const c = document.createElement('canvas');
+function renderThumb(art, size, filled, canvas) {
+  const c = canvas || document.createElement('canvas');
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  c.width = c.height = Math.round(size * dpr);
+  const px = Math.round(size * dpr);
+  if (c.width !== px || c.height !== px) { c.width = px; c.height = px; }
   const ctx = c.getContext('2d');
   drawArtwork(ctx, art, fitCamera(art, size, size, 0.03), size, size, dpr, { all: !filled, filled, bg: '#fbf8f2', cache: thumbCache });
   return c;
@@ -2011,36 +2637,51 @@ return { tonesFor, drawArtwork, drawGem, fitCamera, Board, renderThumb, exportPN
 })();
 
 const __m_app = (() => {
-const { CATALOG, getArtwork, sessionLabel } = __m_artworks;
-const { Board, renderThumb, exportPNG, tonesFor } = __m_board;
-const { paintGem } = __m_gems;
+const { CATALOG, getArtwork, sessionLabel, LEVEL, GEMS } = __m_artworks;
+const { META } = __m_meta;
+const { COLLECTION_SIZE } = __m_collection2;
+const { Board, renderThumb, exportPNG, tonesFor, fitCamera } = __m_board;
+const { paintGem, rgbStr } = __m_gems;
 const store = __m_store;
 const sfx = __m_audio;
 
 const $ = (s) => document.querySelector(s);
+const svg = (body, extra = '') => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" ${extra}>${body}</svg>`;
 const ICON = {
-  back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
-  menu: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
-  pan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V5.5a1.5 1.5 0 013 0V11m0-1V4.5a1.5 1.5 0 013 0V11m0-5.5a1.5 1.5 0 013 0V11m0-3.5a1.5 1.5 0 013 0V15a6 6 0 01-6 6h-1.5a6 6 0 01-4.6-2.2L4.6 15a1.6 1.6 0 012.4-2.1L8 14"/></svg>',
-  paint: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l7 6-7 12L5 9z"/><path d="M5 9h14M9 9l3-6 3 6-3 12z"/></svg>',
-  zin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M11 8v6M8 11h6M16 16l4 4"/></svg>',
-  zout: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="M8 11h6M16 16l4 4"/></svg>',
-  fit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
-  hint: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z"/></svg>',
+  back: svg('<path d="M15 5l-7 7 7 7"/>', 'stroke-width="2.2"'),
+  menu: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg>',
+  paint: svg('<path d="M12 3l7 6-7 12L5 9z"/><path d="M5 9h14M9 9l3-6 3 6-3 12z"/>'),
+  pan: svg('<path d="M8 13V5.5a1.5 1.5 0 013 0V11m0-1V4.5a1.5 1.5 0 013 0V11m0-5.5a1.5 1.5 0 013 0V11m0-3.5a1.5 1.5 0 013 0V15a6 6 0 01-6 6h-1.5a6 6 0 01-4.6-2.2L4.6 15a1.6 1.6 0 012.4-2.1L8 14"/>'),
+  zin: svg('<circle cx="11" cy="11" r="6.5"/><path d="M11 8v6M8 11h6M16 16l4 4"/>'),
+  zout: svg('<circle cx="11" cy="11" r="6.5"/><path d="M8 11h6M16 16l4 4"/>'),
+  fit: svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
+  find: svg('<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>'),
   heart: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.3 7.6 3.6 4 7.2 4c2 0 3.6 1.1 4.8 2.8C13.2 5.1 14.8 4 16.8 4c3.6 0 5.9 3.6 4.5 7.3-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg>',
-  heartO: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.3 7.6 3.6 4 7.2 4c2 0 3.6 1.1 4.8 2.8C13.2 5.1 14.8 4 16.8 4c3.6 0 5.9 3.6 4.5 7.3-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg>',
-  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  heartO: svg('<path d="M12 20.5s-7.5-4.6-9.3-9.2C1.3 7.6 3.6 4 7.2 4c2 0 3.6 1.1 4.8 2.8C13.2 5.1 14.8 4 16.8 4c3.6 0 5.9 3.6 4.5 7.3-1.8 4.6-9.3 9.2-9.3 9.2z"/>'),
+  check: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 'stroke-width="3.2"'),
+  play: '<svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M7 4.5v15l13-7.5z"/></svg>',
+  palette: svg('<circle cx="6" cy="17" r="2.5"/><circle cx="12" cy="17" r="2.5"/><circle cx="18" cy="17" r="2.5"/><path d="M12 4l4 4-4 5-4-5z"/>'),
+  tap: svg('<path d="M9 11V5.5a1.5 1.5 0 013 0V11l4.6.9a2 2 0 011.6 2.2l-.7 5a2 2 0 01-2 1.9H11a2 2 0 01-1.6-.8L6 15.5a1.5 1.5 0 012.2-2L9 14"/><path d="M5 5.5a5 5 0 018-3"/>'),
 };
+const LEVEL_INFO = {
+  Beginner: 'Bold shapes and a handful of colours',
+  Medium: 'Richer patterns for a relaxing evening',
+  Intricate: 'Fine detail that rewards zooming in',
+  Expert: 'Dense mosaics of over a thousand gems',
+  Master: 'Grand works of 2,000 to 3,000+ gems, made to savour over many sittings',
+};
+const PIPS = (d) => '◆'.repeat(LEVEL[d] + 1) + '◇'.repeat(4 - LEVEL[d]);
+const fmtN = (n) => n.toLocaleString('en-US');
+const fmtTime = (ms) => { const m = Math.round(ms / 60000); return m < 1 ? 'under a minute' : m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`; };
 
 // ---------------------------------------------------------------- state
 const S = {
-  settings: { sound: true, autoAdvance: true, reduced: null },
+  settings: { sound: true, autoAdvance: true, reduced: null, vibe: true, coached: false },
   favorites: new Set(),
-  summary: {}, // artId -> {count,total,completed,updated}
-  filters: { cat: 'all', diff: 'all', status: 'all' },
-  cur: null, // {art, filled, sel, remaining, camera, completed}
+  summary: {}, // artId -> {count,total,completed,updated,time}
+  filters: { status: 'all', diff: 'all', cat: 'all' },
+  cur: null,
 };
-const thumbs = new Map();
 const sysReduced = matchMedia('(prefers-reduced-motion: reduce)');
 const reducedMotion = () => (S.settings.reduced === null ? sysReduced.matches : S.settings.reduced);
 
@@ -2054,9 +2695,9 @@ function flushSave() {
   const ids = []; for (let i = 0; i < c.filled.length; i++) if (c.filled[i]) ids.push(i);
   const rec = {
     schema: store.SCHEMA, art: c.art.id, version: c.art.version, mode: 'number',
-    filled: ids, camera: c.camera, sel: c.sel, updated: Date.now(), completed: c.completed,
+    filled: ids, camera: c.camera, sel: c.sel, updated: Date.now(), completed: c.completed, time: Math.round(c.time),
   };
-  S.summary[c.art.id] = { count: ids.length, total: c.art.sockets.length, completed: c.completed, updated: rec.updated };
+  S.summary[c.art.id] = { count: ids.length, total: c.art.sockets.length, completed: c.completed, updated: rec.updated, time: rec.time };
   return store.set(store.progressKey(c.art.id), rec);
 }
 const saveSettings = () => store.set('settings', { schema: store.SCHEMA, ...S.settings });
@@ -2065,122 +2706,188 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) flush
 window.addEventListener('pagehide', flushSave);
 
 // ---------------------------------------------------------------- gallery
-function thumbFor(id) {
-  if (!thumbs.has(id)) thumbs.set(id, renderThumb(getArtwork(id), 300));
-  return thumbs.get(id);
-}
-function copyCanvas(src, cls) {
-  const c = document.createElement('canvas');
-  c.width = src.width; c.height = src.height;
-  if (cls) c.className = cls;
-  c.getContext('2d').drawImage(src, 0, 0);
+const thumbCache = new Map(); // key -> canvas (bounded below)
+function thumbKey(id) { const s = S.summary[id]; return s && s.count && !s.completed ? `${id}:${s.count}` : `${id}:full`; }
+async function thumbFor(id, size) {
+  const key = thumbKey(id) + ':' + size;
+  if (thumbCache.has(key)) return thumbCache.get(key);
+  const art = getArtwork(id), s = S.summary[id];
+  let filled = null;
+  if (s && s.count && !s.completed) {
+    const rec = store.sanitizeProgress(await store.get(store.progressKey(id)), art);
+    filled = rec ? rec.filled : null;
+  }
+  const c = renderThumb(art, size, filled);
+  thumbCache.set(key, c);
+  if (thumbCache.size > 90) thumbCache.delete(thumbCache.keys().next().value);
   return c;
 }
+function paintInto(target, src) {
+  const c = document.createElement('canvas');
+  c.width = src.width; c.height = src.height;
+  c.getContext('2d').drawImage(src, 0, 0);
+  target.replaceChildren(c);
+  target.classList.remove('loading');
+}
+// Thumbnails render lazily as cards scroll into view, one per idle slice.
+const thumbQueue = [];
+let thumbBusy = false;
+function pumpThumbs() {
+  if (thumbBusy) return;
+  const job = thumbQueue.shift(); if (!job) return;
+  if (!job.el.isConnected) { pumpThumbs(); return; }
+  thumbBusy = true;
+  thumbFor(job.id, job.size).then((c) => { if (job.el.isConnected) paintInto(job.el, c); }).catch(() => {}).finally(() => {
+    thumbBusy = false;
+    setTimeout(pumpThumbs, 0);
+  });
+}
+const io = new IntersectionObserver((entries) => {
+  for (const e of entries) if (e.isIntersecting) {
+    io.unobserve(e.target);
+    thumbQueue.push({ el: e.target, id: e.target.dataset.id, size: +e.target.dataset.size || 300 });
+  }
+  pumpThumbs();
+}, { rootMargin: '400px' });
+
 function statusOf(id) {
   const s = S.summary[id];
-  if (!s || !s.count) return s && s.completed ? 'done' : 'new';
-  return s.completed ? 'done' : 'progress';
+  if (!s) return 'new';
+  if (s.completed) return 'done';
+  return s.count ? 'progress' : 'new';
+}
+
+// Card metadata without generating the artwork (precomputed; falls back to generating).
+function metaOf(m) {
+  const x = META[m.id];
+  if (x && x.v === m.version) return x;
+  const a = getArtwork(m.id);
+  return (META[m.id] = { v: m.version, n: a.sockets.length, pal: a.palette.map((p) => p.key) });
+}
+function swatchHTML(meta) {
+  return meta.pal.slice(0, 8).map((k) => `<i style="background:${rgbStr(tonesFor({ key: k, ...GEMS[k] })[2])}"></i>`).join('');
+}
+
+function cardHTML(m) {
+  const meta = metaOf(m), n = meta.n, st = statusOf(m.id), sum = S.summary[m.id];
+  const pct = sum ? Math.floor((sum.count / n) * 100) : 0;
+  const fav = S.favorites.has(m.id);
+  const label = `${m.name}. ${m.difficulty}, ${fmtN(n)} gems${st === 'done' ? ', finished' : st === 'progress' ? `, ${pct}% placed` : ''}`;
+  return `
+    <button class="open" aria-label="${label}">
+      <div class="thumb loading" data-id="${m.id}"></div>
+      ${st === 'done' ? `<span class="tag done">${ICON.check} Finished</span>` : st === 'progress' ? `<span class="tag">${pct}% placed</span>` : ''}
+      <div class="info">
+        <h3 class="name">${m.name}</h3>
+        <div class="meta"><i class="pips" data-pips="${PIPS(m.difficulty)}"></i><span>${fmtN(n)} gems</span></div>
+        ${st === 'progress' ? `<div class="bar"><i style="width:${pct}%"></i></div>` : `<div class="foot"><div class="swatches">${swatchHTML(meta)}</div><span class="time">${sessionLabel(n)}</span></div>`}
+      </div>
+    </button>
+    <button class="fav" aria-pressed="${fav}" aria-label="Favorite ${m.name}">${fav ? ICON.heart : ICON.heartO}</button>`;
 }
 
 function renderGallery() {
-  const grid = $('#grid'); grid.innerHTML = '';
-  const f = S.filters;
+  const f = S.filters, box = $('#sections');
+  box.innerHTML = '';
+  thumbQueue.length = 0;
   const list = CATALOG.filter((m) =>
     (f.cat === 'all' || m.category === f.cat) && (f.diff === 'all' || m.difficulty === f.diff) &&
     (f.status === 'all' || (f.status === 'fav' ? S.favorites.has(m.id) : statusOf(m.id) === f.status)));
   $('#empty').hidden = list.length > 0;
-  const pending = [];
-  for (const m of list) {
-    const art = getArtwork(m.id), sum = S.summary[m.id], st = statusOf(m.id);
-    const n = art.sockets.length;
-    const pct = sum ? Math.floor((sum.count / n) * 100) : 0;
-    const card = document.createElement('article');
-    card.className = 'card';
-    card.innerHTML = `
-      <button class="open" aria-label="${m.name}, ${m.difficulty}, ${n} gems${st === 'done' ? ', completed' : st === 'progress' ? `, ${pct}% complete` : ''}">
-        <div class="thumb"></div>
-        <div class="info">
-          <h3 class="name">${m.name}</h3>
-          <div class="meta"><span>${m.difficulty}</span><span class="dot">·</span><span>${n} gems</span></div>
-          <div class="state">${st === 'done' ? `<span class="badge done">${ICON.check.replace('<svg', '<svg width="11" height="11"')} Completed</span>`
-            : st === 'progress' ? `<div class="bar"><i style="width:${pct}%"></i></div><span>${pct}%</span>`
-            : `<span>${sessionLabel(n)}</span>`}</div>
-        </div>
-      </button>
-      <button class="fav" aria-pressed="${S.favorites.has(m.id)}" aria-label="Favorite ${m.name}">${S.favorites.has(m.id) ? ICON.heart : ICON.heartO}</button>`;
-    card.querySelector('.open').onclick = () => openArt(m.id);
-    const fav = card.querySelector('.fav');
-    fav.onclick = () => {
-      if (S.favorites.has(m.id)) S.favorites.delete(m.id); else S.favorites.add(m.id);
-      saveFavs();
-      fav.setAttribute('aria-pressed', S.favorites.has(m.id));
-      fav.innerHTML = S.favorites.has(m.id) ? ICON.heart : ICON.heartO;
-      if (S.filters.status === 'fav') renderGallery();
-    };
-    grid.appendChild(card);
-    pending.push([card.querySelector('.thumb'), m.id]);
+  const levels = [...new Set(list.map((m) => m.difficulty))];
+  for (const lv of levels) {
+    const items = list.filter((m) => m.difficulty === lv);
+    const sec = document.createElement('section');
+    sec.className = 'level';
+    sec.innerHTML = `<div class="level-head"><h2>${lv}</h2><i class="pips" data-pips="${PIPS(lv)}"></i><p>${LEVEL_INFO[lv]} · ${items.length} ${items.length === 1 ? 'artwork' : 'artworks'}</p></div><div class="grid"></div>`;
+    const grid = sec.querySelector('.grid');
+    for (const m of items) {
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.innerHTML = cardHTML(m);
+      card.querySelector('.open').onclick = () => openArt(m.id);
+      const fav = card.querySelector('.fav');
+      fav.onclick = () => {
+        if (S.favorites.has(m.id)) S.favorites.delete(m.id); else S.favorites.add(m.id);
+        saveFavs();
+        const on = S.favorites.has(m.id);
+        fav.setAttribute('aria-pressed', on); fav.innerHTML = on ? ICON.heart : ICON.heartO;
+        if (S.filters.status === 'fav') renderGallery();
+      };
+      grid.appendChild(card);
+      io.observe(card.querySelector('.thumb'));
+    }
+    box.appendChild(sec);
   }
-  // render thumbnails progressively so the gallery appears instantly
-  const step = () => {
-    const job = pending.shift(); if (!job) return;
-    job[0].appendChild(copyCanvas(thumbFor(job[1])));
-    setTimeout(step, 0);
-  };
-  step();
-  renderContinue();
+  renderRail();
+  renderStats();
 }
 
-function renderContinue() {
-  const box = $('#continue');
-  const recent = Object.entries(S.summary).filter(([, s]) => s.count && !s.completed).sort((a, b) => b[1].updated - a[1].updated)[0];
-  if (!recent) { box.hidden = true; return; }
-  const [id, s] = recent, m = CATALOG.find((c) => c.id === id);
-  if (!m) { box.hidden = true; return; }
-  box.hidden = false;
-  box.innerHTML = '';
-  const btn = document.createElement('button');
-  btn.className = 'continue';
-  btn.setAttribute('aria-label', `Continue ${m.name}`);
-  btn.appendChild(copyCanvas(thumbFor(id)));
-  const pct = Math.floor((s.count / s.total) * 100);
-  btn.insertAdjacentHTML('beforeend', `<div><div class="eyebrow">Continue</div><div class="ct">${m.name}</div><div class="cm">${pct}% complete · ${s.total - s.count} gems left</div></div><span class="go">Resume</span>`);
-  btn.onclick = () => openArt(id);
-  box.appendChild(btn);
+function renderStats() {
+  const done = Object.values(S.summary).filter((s) => s.completed).length;
+  const gems = Object.values(S.summary).reduce((a, s) => a + (s.count || 0), 0);
+  $('#st-done').textContent = `${done} / ${COLLECTION_SIZE}`;
+  $('#st-gems').textContent = fmtN(gems);
 }
 
-document.querySelectorAll('.chips').forEach((g) => {
+function renderRail() {
+  const recent = Object.entries(S.summary).filter(([id, s]) => s.count && !s.completed && CATALOG.some((m) => m.id === id))
+    .sort((a, b) => b[1].updated - a[1].updated);
+  $('#rail').hidden = !recent.length;
+  const track = $('#rail-track'); track.innerHTML = '';
+  for (const [id, s] of recent) {
+    const m = CATALOG.find((c) => c.id === id);
+    const pct = Math.floor((s.count / s.total) * 100);
+    const b = document.createElement('button');
+    b.className = 'rail-card';
+    b.setAttribute('aria-label', `Continue ${m.name}, ${pct}% placed`);
+    b.innerHTML = `<div class="thumb loading" data-id="${id}" data-size="184" style="width:92px;height:92px;border-radius:14px;flex:none;overflow:hidden"></div>
+      <div class="rc-body"><div class="rc-name">${m.name}</div>
+      <div class="rc-meta">${pct}% · ${fmtN(s.total - s.count)} gems left</div>
+      <span class="go">${ICON.play}Resume</span></div>`;
+    b.onclick = () => openArt(id);
+    track.appendChild(b);
+    io.observe(b.querySelector('.thumb'));
+  }
+}
+
+document.querySelectorAll('.filters [data-group]').forEach((g) => {
   g.addEventListener('click', (e) => {
-    const b = e.target.closest('.chip'); if (!b) return;
-    g.querySelectorAll('.chip').forEach((c) => c.setAttribute('aria-pressed', c === b));
+    const b = e.target.closest('button'); if (!b) return;
+    g.querySelectorAll('button').forEach((c) => c.setAttribute('aria-pressed', c === b));
     S.filters[g.dataset.group] = b.dataset.v;
     renderGallery();
   });
 });
+document.querySelectorAll('.chips .pips').forEach((p) => { p.dataset.pips = '◆'.repeat(+p.dataset.n); });
 
 // ---------------------------------------------------------------- play
+let lastVibe = 0;
 const board = new Board($('#cv'), {
   onPlace(i) {
     const c = S.cur, g = c.art.sockets[i];
     c.remaining[g.p]--;
     c.placed++;
-    c.dirty = true; scheduleSave();
+    c.dirty = true; c.lastInput = performance.now(); scheduleSave();
     sfx.place(c.placed);
-    updatePalItem(g.p); updateProgress();
+    if (S.settings.vibe && navigator.vibrate && performance.now() - lastVibe > 70) { lastVibe = performance.now(); try { navigator.vibrate(4); } catch {} }
+    updatePalItem(g.p); updateProgress(); mmDirty();
     if (c.remaining[g.p] === 0) paletteComplete(g.p);
   },
   onWrong(p) {
     sfx.wrong();
-    toast(`That socket takes gem ${p + 1}`);
+    toast(`That spot needs gem ${p + 1} · ${S.cur.art.palette[p].name}`);
     const el = palEls[p]; if (el) { el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse'); }
   },
-  onTooSmall() { toast('Zoom in for detail'); },
+  onTooSmall(isTap) { toast(isTap ? 'Zooming in so you can place gems' : 'Zoom in to place these gems'); },
   onUndoStroke(ids) {
     const c = S.cur;
     for (const i of ids) if (c.filled[i]) { c.filled[i] = 0; c.remaining[c.art.sockets[i].p]++; c.placed--; board.anims.delete(i); }
     c.dirty = true; scheduleSave();
-    refreshPalette(); updateProgress(); board.invalidate();
+    refreshPalette(); updateProgress(); board.invalidate(); mmDirty();
   },
   onCamera(cam) { if (S.cur) { S.cur.camera = cam; S.cur.dirty = true; scheduleSave(); } },
+  onFrame() { updateMinimapView(); },
 });
 
 let palEls = [];
@@ -2190,27 +2897,36 @@ function buildPalette() {
   c.art.palette.forEach((entry, p) => {
     const b = document.createElement('button');
     b.className = 'pal'; b.setAttribute('role', 'radio');
+    b.innerHTML = `<span class="gem"><svg viewBox="0 0 50 50" aria-hidden="true"><circle cx="25" cy="25" r="23" class="track"/><circle cx="25" cy="25" r="23" class="fill"/></svg></span>
+      <span class="num">${p + 1}</span><span class="left"></span><span class="check">${ICON.check}</span>`;
     const cv = document.createElement('canvas');
-    const dpr = Math.min(2, devicePixelRatio || 1), sz = 44;
+    const dpr = Math.min(2, devicePixelRatio || 1), sz = 38;
     cv.width = cv.height = sz * dpr;
     const x = cv.getContext('2d');
     x.scale(dpr, dpr); x.translate(sz / 2, sz / 2 - 1);
-    paintGem(x, 'round', 34, 34, 0, tonesFor(entry), p % 3);
-    b.appendChild(cv);
-    b.insertAdjacentHTML('beforeend', `<span class="num">${p + 1}</span><span class="left"></span><span class="check">${ICON.check}</span>`);
+    paintGem(x, 'round', 30, 30, 0, tonesFor(entry), p % 2);
+    b.querySelector('.gem').appendChild(cv);
     b.onclick = () => selectPal(p, true);
     box.appendChild(b); palEls.push(b);
   });
+  c.totals = c.art.palette.map(() => 0);
+  c.art.sockets.forEach((s) => c.totals[s.p]++);
   refreshPalette();
 }
 function updatePalItem(p) {
   const c = S.cur, el = palEls[p]; if (!el) return;
-  const left = c.remaining[p];
+  const left = c.remaining[p], total = c.totals[p];
   el.classList.toggle('done', left === 0);
-  el.querySelector('.left').textContent = left === 0 ? 'Done' : `${left} left`;
-  el.setAttribute('aria-label', `Gem ${p + 1}, ${c.art.palette[p].name}, ${left === 0 ? 'complete' : left + ' remaining'}`);
+  el.querySelector('.left').textContent = left === 0 ? 'Done' : `${fmtN(left)} left`;
+  el.querySelector('.fill').style.strokeDashoffset = String(144.5 * (left / total));
+  el.setAttribute('aria-label', `Gem ${p + 1}, ${c.art.palette[p].name}, ${left === 0 ? 'complete' : left + ' left'}`);
   el.setAttribute('aria-checked', String(p === c.sel));
   el.tabIndex = p === c.sel ? 0 : -1;
+  if (p === c.sel) updateSelPill();
+}
+function updateSelPill() {
+  const c = S.cur, p = c.sel, e = c.art.palette[p], left = c.remaining[p];
+  $('#sel-pill').innerHTML = `<i style="background:${rgbStr(tonesFor(e)[2])}"></i><b>${p + 1} · ${e.name}</b><span>${left ? `${fmtN(left)} to place` : 'all placed'}</span>`;
 }
 function refreshPalette() { S.cur.art.palette.forEach((_, p) => updatePalItem(p)); }
 function selectPal(p, user) {
@@ -2221,50 +2937,85 @@ function selectPal(p, user) {
   c.dirty = true; scheduleSave();
 }
 function paletteComplete(p) {
-  const c = S.cur;
-  const el = palEls[p];
+  const c = S.cur, el = palEls[p];
   if (el) { el.classList.remove('cheer'); void el.offsetWidth; el.classList.add('cheer'); }
   if (c.placed === c.art.sockets.length) { finish(); return; }
   sfx.paletteDone();
   toast(`${c.art.palette[p].name} complete`);
   if (S.settings.autoAdvance) {
     const n = c.art.palette.length;
-    for (let k = 1; k < n; k++) { const q = (p + k) % n; if (c.remaining[q] > 0) { setTimeout(() => S.cur === c && c.sel === p && selectPal(q), 350); break; } }
+    for (let k = 1; k < n; k++) { const q = (p + k) % n; if (c.remaining[q] > 0) { setTimeout(() => S.cur === c && c.sel === p && selectPal(q), 380); break; } }
   }
 }
 function updateProgress() {
-  const c = S.cur, total = c.art.sockets.length;
-  const pct = (c.placed / total) * 100;
-  $('#prog-fill').style.width = pct + '%';
-  $('#prog-txt').textContent = `${Math.floor(pct)}%`;
-  $('#prog-txt').setAttribute('aria-label', `${c.placed} of ${total} gems placed`);
+  const c = S.cur, total = c.art.sockets.length, f = c.placed / total;
+  $('#prog-arc').style.strokeDashoffset = String(113.1 * (1 - f));
+  $('#prog-txt').textContent = `${Math.floor(f * 100)}%`;
+  $('#prog').setAttribute('aria-label', `${c.placed} of ${total} gems placed`);
+  $('#art-sub').textContent = c.placed === total ? `All ${fmtN(total)} gems placed` : `${fmtN(total - c.placed)} of ${fmtN(total)} gems left`;
 }
 
+// ---------------- minimap
+const mm = { canvas: $('#mm'), box: $('#minimap'), view: $('#mm-view'), dirty: true, t: 0, size: 0 };
+function mmDirty() { mm.dirty = true; }
+function updateMinimapView() {
+  const c = S.cur; if (!c) return;
+  const show = board.zoomRatio > 1.7;
+  if (mm.box.hidden === show) mm.box.hidden = !show;
+  if (!show) return;
+  const size = mm.box.clientWidth || 112;
+  const now = performance.now();
+  if ((mm.dirty && now - mm.t > 1500) || mm.size !== size) {
+    mm.dirty = false; mm.t = now; mm.size = size;
+    renderThumb(c.art, size, c.filled, mm.canvas);
+  }
+  const ft = fitCamera(c.art, size, size, 0.03), cam = board.cam;
+  const x0 = (-cam.x / cam.s) * ft.s + ft.x, y0 = (-cam.y / cam.s) * ft.s + ft.y;
+  const w = (board.W / cam.s) * ft.s, h = (board.H / cam.s) * ft.s;
+  const cl = (v) => Math.max(-2, Math.min(size + 2, v));
+  const L = cl(x0), T = cl(y0), R = cl(x0 + w), B = cl(y0 + h);
+  const st = mm.view.style;
+  st.left = L + 'px'; st.top = T + 'px'; st.width = Math.max(6, R - L) + 'px'; st.height = Math.max(6, B - T) + 'px';
+}
+function mmJump(e, animate) {
+  const c = S.cur; if (!c) return;
+  const r = mm.box.getBoundingClientRect(), size = r.width;
+  const ft = fitCamera(c.art, size, size, 0.03);
+  board.centerOn((e.clientX - r.left - ft.x) / ft.s, (e.clientY - r.top - ft.y) / ft.s, animate && !reducedMotion());
+}
+mm.box.addEventListener('pointerdown', (e) => { e.preventDefault(); try { mm.box.setPointerCapture(e.pointerId); } catch {} mmJump(e, true); });
+mm.box.addEventListener('pointermove', (e) => { if (e.buttons) mmJump(e, false); });
+
+// ---------------- open / leave
 async function openArt(id) {
   sfx.unlock();
   const art = getArtwork(id);
-  const rec = store.sanitizeProgress(await store.get(store.progressKey(id)), art);
+  let rec = null;
+  try { rec = store.sanitizeProgress(await store.get(store.progressKey(id)), art); } catch {}
   const filled = rec ? rec.filled : new Uint8Array(art.sockets.length);
   const remaining = art.palette.map(() => 0);
   let placed = 0;
   art.sockets.forEach((s, i) => { if (filled[i]) placed++; else remaining[s.p]++; });
   let sel = rec ? Math.min(rec.sel, art.palette.length - 1) : 0;
   if (remaining[sel] === 0) { const q = remaining.findIndex((r) => r > 0); if (q >= 0) sel = q; }
-  S.cur = { art, filled, remaining, placed, sel, camera: rec && rec.camera, completed: placed === art.sockets.length, dirty: false };
+  const prevTime = (S.summary[id] && S.summary[id].time) || 0;
+  S.cur = { art, filled, remaining, placed, sel, camera: rec && rec.camera, completed: placed === art.sockets.length, dirty: false, time: prevTime, lastInput: performance.now() };
   $('#art-name').textContent = art.name;
-  document.title = `${art.name} — Lustra`;
+  document.title = `${art.name} · Lustra`;
   show('play');
   board.reduced = reducedMotion();
   setMode('paint');
+  mm.size = 0; mm.box.hidden = true;
   board.load(art, filled, sel, rec && rec.camera);
-  buildPalette(); updateProgress();
+  buildPalette(); updateProgress(); mmDirty();
   palEls[sel] && palEls[sel].scrollIntoView({ inline: 'center', block: 'nearest' });
   if (S.cur.completed) setTimeout(() => completionPanel(true), 300);
+  else if (!S.settings.coached) showCoach();
 }
 
 function leave() {
   flushSave();
-  closeMenu(); closeModal();
+  closeMenu(); closeModal(); $('#coach').hidden = true;
   board.unload();
   S.cur = null;
   document.title = 'Lustra Gem Mosaics';
@@ -2276,10 +3027,16 @@ function show(which) {
   $('#play').hidden = which !== 'play';
 }
 
+// Active play time: counts while the tab is visible and the player touched it in the last minute.
+setInterval(() => {
+  const c = S.cur;
+  if (c && !c.completed && !document.hidden && performance.now() - c.lastInput < 60000) c.time += 1000;
+}, 1000);
+document.addEventListener('pointerdown', () => { if (S.cur) S.cur.lastInput = performance.now(); }, { capture: true, passive: true });
+
 function finish() {
   const c = S.cur;
   c.completed = true; c.dirty = true; flushSave();
-  thumbs.delete(c.art.id + ':p');
   setTimeout(() => {
     if (S.cur !== c) return;
     sfx.complete();
@@ -2293,9 +3050,13 @@ function completionPanel(revisit) {
   const idx = CATALOG.findIndex((m) => m.id === c.art.id);
   const next = CATALOG.slice(idx + 1).concat(CATALOG.slice(0, idx)).find((m) => statusOf(m.id) !== 'done');
   openModal(`
-    <div class="eyebrow">${revisit ? 'Completed piece' : 'Artwork complete'}</div>
+    <div class="eyebrow">${revisit ? 'In your collection' : 'Artwork complete'}</div>
     <h3 id="modal-title">${c.art.name}</h3>
-    <p>${c.art.sockets.length} gems placed. ${revisit ? 'It lives in your completed collection.' : 'Added to your completed collection.'}</p>
+    <div class="done-stats">
+      <div><b>${fmtN(c.art.sockets.length)}</b><span>gems placed</span></div>
+      <div><b>${c.art.palette.length}</b><span>gem colours</span></div>
+      ${c.time > 30000 ? `<div><b>${fmtTime(c.time)}</b><span>of play</span></div>` : ''}
+    </div>
     <div class="actions">
       <button class="btn" data-a="admire">Admire</button>
       <button class="btn" data-a="export">Save image</button>
@@ -2309,22 +3070,25 @@ function completionPanel(revisit) {
 
 function doExport() {
   const c = S.cur; if (!c) return;
-  const cv = exportPNG(c.art, c.filled, 2000);
-  cv.toBlob((blob) => {
-    if (!blob) { toast('Could not create the image'); return; }
-    const url = URL.createObjectURL(blob);
-    const back = c.completed ? () => completionPanel(true) : closeModal;
-    openModal(`
-      <h3 id="modal-title">${c.art.name}</h3>
-      <img class="export-img" src="${url}" alt="${c.art.name}, rendered at 2000 by 2000 pixels">
-      <p>Press and hold the image (or right-click it) and choose Save Image.</p>
-      <div class="actions"><button class="btn primary" data-a="done">Done</button></div>`, {
-      done: () => { URL.revokeObjectURL(url); back(); },
-    });
-  }, 'image/png');
+  toast('Preparing image…');
+  setTimeout(() => {
+    const cv = exportPNG(c.art, c.filled, 2000);
+    cv.toBlob((blob) => {
+      if (!blob) { toast('Could not create the image'); return; }
+      const url = URL.createObjectURL(blob);
+      const back = c.completed ? () => completionPanel(true) : closeModal;
+      openModal(`
+        <h3 id="modal-title">${c.art.name}</h3>
+        <img class="export-img" src="${url}" alt="${c.art.name}, rendered at 2000 by 2000 pixels">
+        <p>Press and hold the image (or right-click it) and choose Save Image.</p>
+        <div class="actions"><button class="btn primary" data-a="done">Done</button></div>`, {
+        done: () => { URL.revokeObjectURL(url); back(); },
+      });
+    }, 'image/png');
+  }, 30);
 }
 
-// ---------------------------------------------------------------- modal / menu / toast
+// ---------------------------------------------------------------- modal / menu / toast / coach
 let modalActions = null, modalReturn = null;
 function openModal(html, actions, clear = false) {
   const m = $('#modal'), sh = m.querySelector('.sheet');
@@ -2345,14 +3109,18 @@ $('#modal').addEventListener('click', (e) => {
 let toastT;
 function toast(msg) {
   const t = $('#toast');
-  if (t.textContent === msg && t.classList.contains('show')) { clearTimeout(toastT); }
   t.textContent = msg; t.classList.add('show');
-  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1600);
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800);
 }
+
+function showCoach() { $('#coach').hidden = false; $('#coach-ok').focus(); }
+$('#coach-ok').onclick = () => { $('#coach').hidden = true; S.settings.coached = true; saveSettings(); };
+document.querySelectorAll('.step-ico').forEach((el) => { el.innerHTML = { palette: ICON.palette, tap: ICON.tap, zoom: ICON.zin, find: ICON.find }[el.dataset.ico]; });
 
 function openMenu() {
   $('#menu').hidden = false; $('#btn-menu').setAttribute('aria-expanded', 'true');
   $('#opt-sound').checked = S.settings.sound;
+  $('#opt-vibe').checked = S.settings.vibe;
   $('#opt-auto').checked = S.settings.autoAdvance;
   $('#opt-motion').checked = reducedMotion();
   $('#opt-sound').focus();
@@ -2361,22 +3129,24 @@ function closeMenu() { if ($('#menu').hidden) return; $('#menu').hidden = true; 
 $('#btn-menu').onclick = (e) => { e.stopPropagation(); $('#menu').hidden ? openMenu() : closeMenu(); };
 document.addEventListener('pointerdown', (e) => { if (!$('#menu').hidden && !e.target.closest('#menu') && !e.target.closest('#btn-menu')) closeMenu(); });
 $('#opt-sound').onchange = (e) => { S.settings.sound = e.target.checked; sfx.setSound(S.settings.sound); saveSettings(); };
+$('#opt-vibe').onchange = (e) => { S.settings.vibe = e.target.checked; saveSettings(); };
 $('#opt-auto').onchange = (e) => { S.settings.autoAdvance = e.target.checked; saveSettings(); };
 $('#opt-motion').onchange = (e) => { S.settings.reduced = e.target.checked; applyMotion(); saveSettings(); };
+$('#m-help').onclick = () => { closeMenu(); showCoach(); };
 $('#m-export').onclick = () => { closeMenu(); doExport(); };
 $('#m-restart').onclick = () => {
   closeMenu();
   const c = S.cur;
-  openModal(`<h3 id="modal-title">Restart ${c.art.name}?</h3><p>All ${c.placed} placed gems on this artwork will be removed. Your other artworks are not affected.</p>
+  openModal(`<h3 id="modal-title">Restart ${c.art.name}?</h3><p>All ${fmtN(c.placed)} placed gems on this artwork will be removed. Your other artworks are not affected.</p>
     <div class="actions"><button class="btn" data-a="no">Keep my progress</button><button class="btn danger" data-a="yes">Restart</button></div>`, {
     no: closeModal,
     yes: () => {
       closeModal();
-      c.filled.fill(0); c.placed = 0; c.completed = false;
+      c.filled.fill(0); c.placed = 0; c.completed = false; c.time = 0;
       c.remaining = c.art.palette.map(() => 0); c.art.sockets.forEach((s) => c.remaining[s.p]++);
       c.sel = 0; c.camera = null; c.dirty = true; flushSave();
       board.load(c.art, c.filled, 0, null);
-      refreshPalette(); updateProgress();
+      refreshPalette(); updateProgress(); mmDirty();
       toast('Artwork restarted');
     },
   });
@@ -2386,41 +3156,38 @@ function applyMotion() { board.reduced = reducedMotion(); document.documentEleme
 // ---------------------------------------------------------------- tools / keys
 function setMode(m) {
   board.mode = m;
-  const b = $('#t-mode');
-  b.innerHTML = m === 'pan' ? ICON.pan : ICON.paint;
-  b.setAttribute('aria-pressed', String(m === 'pan'));
-  b.setAttribute('aria-label', m === 'pan' ? 'Pan mode on — tap to switch to placing gems' : 'Place mode — tap to switch to pan');
-  b.title = m === 'pan' ? 'Pan (drag moves the canvas)' : 'Place gems (switch to pan)';
+  $('#t-paint').setAttribute('aria-pressed', String(m === 'paint'));
+  $('#t-pan').setAttribute('aria-pressed', String(m === 'pan'));
 }
 $('#btn-back').innerHTML = ICON.back; $('#btn-menu').innerHTML = ICON.menu;
-$('#t-zin').innerHTML = ICON.zin; $('#t-zout').innerHTML = ICON.zout; $('#t-fit').innerHTML = ICON.fit; $('#t-hint').innerHTML = ICON.hint;
-['t-zin', 't-zout', 't-fit', 't-hint'].forEach((id) => { $('#' + id).title = $('#' + id).getAttribute('aria-label'); });
+$('#t-paint').innerHTML = ICON.paint; $('#t-pan').innerHTML = ICON.pan;
+$('#t-zin').innerHTML = ICON.zin; $('#t-zout').innerHTML = ICON.zout; $('#t-fit').innerHTML = ICON.fit; $('#t-hint').innerHTML = ICON.find;
 $('#btn-back').onclick = leave;
-$('#t-mode').onclick = () => setMode(board.mode === 'pan' ? 'paint' : 'pan');
-$('#t-zin').onclick = () => board.zoomBy(1.5);
-$('#t-zout').onclick = () => board.zoomBy(1 / 1.5);
+$('#t-paint').onclick = () => setMode('paint');
+$('#t-pan').onclick = () => setMode('pan');
+$('#t-zin').onclick = () => board.zoomBy(1.6);
+$('#t-zout').onclick = () => board.zoomBy(1 / 1.6);
 $('#t-fit').onclick = () => board.fit(true);
-$('#t-hint').onclick = () => { if (S.cur && !board.showHint()) toast('All gems of this number are placed'); };
+$('#t-hint').onclick = () => { if (S.cur && !board.showHint()) toast('Every gem of this number is placed'); };
 
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { if (!$('#modal').hidden) closeModal(); else closeMenu(); return; }
-  if (!S.cur || !$('#modal').hidden || e.target.closest('input, #menu')) return;
-  if (e.code === 'Space' && !e.repeat && e.target === document.body || e.code === 'Space' && e.target.id === 'cv') { board.space = true; e.preventDefault(); return; }
+  if (e.key === 'Escape') { if (!$('#coach').hidden) $('#coach-ok').click(); else if (!$('#modal').hidden) closeModal(); else closeMenu(); return; }
+  if (!S.cur || !$('#modal').hidden || !$('#coach').hidden || e.target.closest('input, #menu')) return;
+  if (e.code === 'Space' && (e.target === document.body || e.target.id === 'cv')) { board.space = true; e.preventDefault(); return; }
   if (e.key === '+' || e.key === '=') board.zoomBy(1.4);
   else if (e.key === '-') board.zoomBy(1 / 1.4);
   else if (e.key === '0') board.fit(true);
-  else if (e.key.toLowerCase() === 'h') $('#t-hint').click();
+  else if (e.key.toLowerCase() === 'h' || e.key.toLowerCase() === 'f') $('#t-hint').click();
   else if (e.key === ']' || e.key === '[' || (e.target.closest('.palette') && (e.key === 'ArrowRight' || e.key === 'ArrowLeft'))) {
     const n = S.cur.art.palette.length, d = e.key === ']' || e.key === 'ArrowRight' ? 1 : -1;
     selectPal((S.cur.sel + d + n) % n, true);
     if (e.target.closest('.palette')) palEls[S.cur.sel].focus();
     e.preventDefault();
-  }
+  } else if (/^[1-9]$/.test(e.key) && +e.key <= S.cur.art.palette.length) selectPal(+e.key - 1, true);
 });
 window.addEventListener('keyup', (e) => { if (e.code === 'Space') board.space = false; });
 window.addEventListener('blur', () => { board.space = false; });
 ['pointerdown', 'touchend'].forEach((t) => document.addEventListener(t, () => sfx.unlock(), { capture: true, passive: true }));
-// iOS Safari ignores user-scalable=no; stop page pinch-zoom outside the canvas
 ['gesturestart', 'gesturechange'].forEach((t) => document.addEventListener(t, (e) => e.preventDefault()));
 document.addEventListener('dblclick', (e) => { if (e.target.closest('#play')) e.preventDefault(); });
 sysReduced.addEventListener && sysReduced.addEventListener('change', applyMotion);
@@ -2429,20 +3196,15 @@ sysReduced.addEventListener && sysReduced.addEventListener('change', applyMotion
 (async function boot() {
   try {
     const st = await store.get('settings');
-    if (st && typeof st === 'object') {
-      if (typeof st.sound === 'boolean') S.settings.sound = st.sound;
-      if (typeof st.autoAdvance === 'boolean') S.settings.autoAdvance = st.autoAdvance;
-      if (typeof st.reduced === 'boolean') S.settings.reduced = st.reduced;
-    }
+    if (st && typeof st === 'object') for (const k of ['sound', 'autoAdvance', 'reduced', 'vibe', 'coached']) if (typeof st[k] === 'boolean') S.settings[k] = st[k];
     const fv = await store.get('favorites');
     if (Array.isArray(fv)) S.favorites = new Set(fv.filter((x) => typeof x === 'string'));
     await Promise.all(CATALOG.map(async (m) => {
       const rec = await store.get(store.progressKey(m.id));
-      if (!rec) return;
-      const art = getArtwork(m.id), p = store.sanitizeProgress(rec, art);
-      if (!p) return;
-      const count = p.filled.reduce((a, b) => a + b, 0);
-      S.summary[m.id] = { count, total: art.sockets.length, completed: p.completed && count === art.sockets.length, updated: p.updated };
+      if (!rec || !Array.isArray(rec.filled)) return;
+      const total = metaOf(m).n;
+      const count = rec.filled.filter((i) => Number.isInteger(i) && i >= 0 && i < total).length;
+      S.summary[m.id] = { count, total, completed: !!rec.completed && count === total, updated: rec.updated || 0, time: +rec.time || 0 };
     }));
   } catch (err) { console.warn('Lustra: could not read saved data', err); }
   sfx.setSound(S.settings.sound);

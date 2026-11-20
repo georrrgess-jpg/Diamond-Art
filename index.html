@@ -6,50 +6,64 @@
 <meta name="theme-color" content="#f6f1e8">
 <title>Lustra Gem Mosaics</title>
 <meta name="description" content="A calm gem-by-number game. Place faceted gemstones into numbered sockets to complete geometric mandalas.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3 28 12 16 29 4 12Z' fill='%232f6fe0'/%3E%3Cpath d='M4 12h24L16 3Z' fill='%238fc6f2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div id="app">
   <!-- ============ GALLERY ============ -->
   <section id="gallery" class="screen" aria-label="Gallery">
-    <header class="g-head">
-      <div class="brand">
-        <svg class="brand-gem" viewBox="0 0 40 40" aria-hidden="true">
-          <path d="M20 3 35 14 20 37 5 14Z" fill="#2f6fe0"/><path d="M5 14h30L20 3Z" fill="#8fc6f2"/>
-          <path d="M12 14 20 3l8 11Z" fill="#d6e9fb"/><path d="M12 14h16l-8 23Z" fill="#1d4fb8"/>
-          <path d="M20 3 35 14 20 37 5 14Z" fill="none" stroke="#173f8f" stroke-width="1"/>
-        </svg>
-        <div>
-          <h1 class="wordmark">Lustra</h1>
-          <p class="tagline">Gem mosaics, one facet at a time</p>
+    <div class="g-wrap">
+      <header class="g-head">
+        <div class="brand">
+          <svg class="brand-gem" viewBox="0 0 40 40" aria-hidden="true">
+            <path d="M20 3 35 14 20 37 5 14Z" fill="#2f6fe0"/><path d="M5 14h30L20 3Z" fill="#8fc6f2"/>
+            <path d="M12 14 20 3l8 11Z" fill="#d6e9fb"/><path d="M12 14h16l-8 23Z" fill="#1d4fb8"/>
+            <path d="M20 3 35 14 20 37 5 14Z" fill="none" stroke="#173f8f" stroke-width="1"/>
+          </svg>
+          <div>
+            <h1 class="wordmark">Lustra</h1>
+            <p class="tagline">Gem mosaics, one facet at a time</p>
+          </div>
+        </div>
+        <div class="stats" aria-label="Your collection">
+          <div class="stat"><b id="st-done">0</b><span id="st-done-label">finished</span></div>
+          <div class="stat"><b id="st-gems">0</b><span>gems placed</span></div>
+        </div>
+      </header>
+
+      <section id="rail" class="rail" hidden aria-labelledby="rail-title">
+        <h2 class="sec-title" id="rail-title">Continue where you left off</h2>
+        <div class="rail-track" id="rail-track"></div>
+      </section>
+
+      <div class="filters" role="toolbar" aria-label="Filters">
+        <div class="seg" data-group="status" role="group" aria-label="Show">
+          <button data-v="all" aria-pressed="true">All</button>
+          <button data-v="progress" aria-pressed="false">In progress</button>
+          <button data-v="done" aria-pressed="false">Finished</button>
+          <button data-v="fav" aria-pressed="false">Favorites</button>
+        </div>
+        <div class="chips" data-group="diff" role="group" aria-label="Level">
+          <button class="chip" data-v="all" aria-pressed="true">Every level</button>
+          <button class="chip" data-v="Beginner" aria-pressed="false"><i class="pips" data-n="1"></i>Beginner</button>
+          <button class="chip" data-v="Medium" aria-pressed="false"><i class="pips" data-n="2"></i>Medium</button>
+          <button class="chip" data-v="Intricate" aria-pressed="false"><i class="pips" data-n="3"></i>Intricate</button>
+          <button class="chip" data-v="Expert" aria-pressed="false"><i class="pips" data-n="4"></i>Expert</button>
+          <button class="chip" data-v="Master" aria-pressed="false"><i class="pips" data-n="5"></i>Master</button>
+        </div>
+        <div class="seg small" data-group="cat" role="group" aria-label="Style">
+          <button data-v="all" aria-pressed="true">All styles</button>
+          <button data-v="mandala" aria-pressed="false">Mandalas</button>
+          <button data-v="geometric" aria-pressed="false">Patterns</button>
         </div>
       </div>
-    </header>
-    <section id="continue" class="continue" hidden></section>
-    <div class="filters" role="toolbar" aria-label="Filters">
-      <div class="chips" data-group="cat" role="group" aria-label="Type">
-        <button class="chip" data-v="all" aria-pressed="true">All</button>
-        <button class="chip" data-v="mandala" aria-pressed="false">Mandalas</button>
-        <button class="chip" data-v="geometric" aria-pressed="false">Geometric</button>
-      </div>
-      <div class="chips" data-group="diff" role="group" aria-label="Difficulty">
-        <button class="chip" data-v="all" aria-pressed="true">Any level</button>
-        <button class="chip" data-v="Beginner" aria-pressed="false">Beginner</button>
-        <button class="chip" data-v="Medium" aria-pressed="false">Medium</button>
-        <button class="chip" data-v="Intricate" aria-pressed="false">Intricate</button>
-        <button class="chip" data-v="Expert" aria-pressed="false">Expert</button>
-      </div>
-      <div class="chips" data-group="status" role="group" aria-label="Progress">
-        <button class="chip" data-v="all" aria-pressed="true">Everything</button>
-        <button class="chip" data-v="new" aria-pressed="false">Not started</button>
-        <button class="chip" data-v="progress" aria-pressed="false">In progress</button>
-        <button class="chip" data-v="done" aria-pressed="false">Completed</button>
-        <button class="chip" data-v="fav" aria-pressed="false">Favorites</button>
-      </div>
+
+      <main id="sections"></main>
+      <p id="empty" class="empty" hidden>Nothing here yet. Try another filter.</p>
     </div>
-    <div id="grid" class="grid"></div>
-    <p id="empty" class="empty" hidden>No artworks match these filters.</p>
   </section>
 
   <!-- ============ PLAY ============ -->
@@ -58,31 +72,55 @@
       <button class="icon-btn" id="btn-back" aria-label="Back to gallery"></button>
       <div class="p-title">
         <h2 id="art-name"></h2>
-        <div class="p-prog"><div class="bar"><i id="prog-fill"></i></div><span id="prog-txt">0%</span></div>
+        <p id="art-sub"></p>
+      </div>
+      <div class="ring-prog" id="prog" role="img" aria-label="0% complete">
+        <svg viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18" class="track"/><circle cx="22" cy="22" r="18" class="fill" id="prog-arc"/></svg>
+        <span id="prog-txt">0%</span>
       </div>
       <button class="icon-btn" id="btn-menu" aria-label="Settings and options" aria-haspopup="true" aria-expanded="false"></button>
     </header>
     <div class="stage" id="stage">
       <canvas id="cv" aria-label="Artwork canvas. Select a numbered gem below, then tap matching numbered sockets."></canvas>
       <div class="tools" role="toolbar" aria-label="Canvas tools">
-        <button class="tool" id="t-mode" aria-label="Pan mode" aria-pressed="false"></button>
-        <button class="tool" id="t-zin" aria-label="Zoom in"></button>
-        <button class="tool" id="t-zout" aria-label="Zoom out"></button>
-        <button class="tool" id="t-fit" aria-label="Fit artwork"></button>
-        <button class="tool" id="t-hint" aria-label="Hint: show a remaining socket"></button>
+        <div class="mode" role="group" aria-label="Touch mode">
+          <button class="tool" id="t-paint" aria-pressed="true" aria-label="Place gems" data-tip="Place"></button>
+          <button class="tool" id="t-pan" aria-pressed="false" aria-label="Move the canvas" data-tip="Move"></button>
+        </div>
+        <span class="tool-sep" aria-hidden="true"></span>
+        <button class="tool" id="t-zin" aria-label="Zoom in" data-tip="Zoom in"></button>
+        <button class="tool" id="t-zout" aria-label="Zoom out" data-tip="Zoom out"></button>
+        <button class="tool" id="t-fit" aria-label="Show whole artwork" data-tip="Whole view"></button>
+        <button class="tool accent" id="t-hint" aria-label="Find a gem spot" data-tip="Find"></button>
       </div>
+      <div class="minimap" id="minimap" hidden aria-label="Overview map: tap to jump"><canvas id="mm"></canvas><i id="mm-view"></i></div>
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
     </div>
     <footer class="palette-bar">
+      <div class="sel-pill" id="sel-pill" aria-live="polite"></div>
       <div id="palette" class="palette" role="radiogroup" aria-label="Gem palette"></div>
     </footer>
     <div id="menu" class="menu" hidden role="menu">
       <label class="row"><span>Sound</span><input type="checkbox" id="opt-sound" class="switch"></label>
-      <label class="row"><span>Auto-advance to next gem</span><input type="checkbox" id="opt-auto" class="switch"></label>
+      <label class="row"><span>Vibration</span><input type="checkbox" id="opt-vibe" class="switch"></label>
+      <label class="row"><span>Jump to next gem when one is done</span><input type="checkbox" id="opt-auto" class="switch"></label>
       <label class="row"><span>Reduce motion</span><input type="checkbox" id="opt-motion" class="switch"></label>
       <hr>
-      <button class="row btn-row" id="m-export">Save image (PNG)</button>
+      <button class="row btn-row" id="m-help">How to play</button>
+      <button class="row btn-row" id="m-export">Save image</button>
       <button class="row btn-row danger" id="m-restart">Restart this artwork…</button>
+    </div>
+    <div id="coach" class="coach" hidden role="dialog" aria-modal="true" aria-labelledby="coach-title">
+      <div class="coach-card">
+        <h3 id="coach-title">How to play</h3>
+        <ol class="steps">
+          <li><span class="step-ico" data-ico="palette"></span><div><b>Pick a gem</b><p>Choose a numbered gem from the tray at the bottom.</p></div></li>
+          <li><span class="step-ico" data-ico="tap"></span><div><b>Tap matching numbers</b><p>Spots with that number light up. Tap one, or drag across several to fill them in one stroke.</p></div></li>
+          <li><span class="step-ico" data-ico="zoom"></span><div><b>Zoom in for detail</b><p>Pinch or scroll to zoom. Use two fingers, the Move tool or Space + drag to look around.</p></div></li>
+          <li><span class="step-ico" data-ico="find"></span><div><b>Stuck?</b><p>Find shows you a spot that still needs the selected gem. Progress saves automatically.</p></div></li>
+        </ol>
+        <button class="btn primary wide" id="coach-ok">Start placing gems</button>
+      </div>
     </div>
   </section>
 

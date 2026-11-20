@@ -42,7 +42,7 @@ export const GEMS = {
 };
 
 // ---------------------------------------------------------------- builder
-class Builder {
+export class Builder {
   constructor() { this.s = []; this.cell = 30; this.grid = new Map(); this.circ = []; }
   circlesOf(shape, x, y, w, h, rot) {
     const out = [], c = Math.cos(rot), s = Math.sin(rot);
@@ -90,10 +90,10 @@ class Builder {
 }
 
 // angle convention: theta = 0 at top, clockwise
-const polar = (R, th) => [R * Math.sin(th), -R * Math.cos(th)];
+export const polar = (R, th) => [R * Math.sin(th), -R * Math.cos(th)];
 
 // Ring of n gems. orient: 'out' (tip points outward), 'in', 'tan'
-function ring(b, R, n, shape, w, h, pal, { phase = 0, orient = 'out', force = true, gap, limit, twist = 0, cx = 0, cy = 0, start = 0 } = {}) {
+export function ring(b, R, n, shape, w, h, pal, { phase = 0, orient = 'out', force = true, gap, limit, twist = 0, cx = 0, cy = 0, start = 0 } = {}) {
   for (let i = 0; i < n; i++) {
     const th = start + (i + phase) / n * TAU;
     const [px, py] = polar(R, th), x = cx + px, y = cy + py;
@@ -107,7 +107,7 @@ function ring(b, R, n, shape, w, h, pal, { phase = 0, orient = 'out', force = tr
 }
 
 // Concentric staggered rows of gems filling an annulus. color(r, theta, row)
-function fillRings(b, R0, R1, size, color, { shape = 'round', gap = 1.07, rowGap = 1.05, limit, aspect = 1, orient = 'out', sym = 1 } = {}) {
+export function fillRings(b, R0, R1, size, color, { shape = 'round', gap = 1.07, rowGap = 1.05, limit, aspect = 1, orient = 'out', sym = 1 } = {}) {
   let row = 0;
   const w = size, h = size * aspect;
   for (let r = R0 + h / 2; r <= R1 - h / 2 + 0.01; r += h * rowGap, row++) {
@@ -125,12 +125,12 @@ function fillRings(b, R0, R1, size, color, { shape = 'round', gap = 1.07, rowGap
 }
 
 // Mirror-folded position inside a k-fold sector: 0 at sector edge, 1 at middle
-function fold(th, k) {
+export function fold(th, k) {
   const sec = TAU / k;
   const t = (((th % sec) + sec) % sec) / sec;
   return 1 - Math.abs(t * 2 - 1);
 }
-const inDisc = (R) => (x, y, r) => Math.hypot(x, y) + r <= R;
+export const inDisc = (R) => (x, y, r) => Math.hypot(x, y) + r <= R;
 
 // ---------------------------------------------------------------- artworks
 function frostRosette() {
@@ -305,8 +305,8 @@ function amberSunburst() {
 
 
 // ---------------------------------------------------------------- collection 2
-const SQ3 = Math.sqrt(3);
-const square = (h) => [[-h, -h], [h, -h], [h, h], [-h, h]];
+export const SQ3 = Math.sqrt(3);
+export const square = (h) => [[-h, -h], [h, -h], [h, h], [-h, h]];
 
 function lotusWheel() {
   const b = new Builder();
@@ -552,7 +552,7 @@ export const CATALOG = [
   { id: 'rose-window', version: 1, name: 'Rose Window', category: 'mandala', difficulty: 'Intricate', build: roseWindow },
   { id: 'kaleidoscope', version: 1, name: 'Midnight Kaleidoscope', category: 'mandala', difficulty: 'Expert', build: kaleidoscope },
 ];
-const LEVEL = { Beginner: 0, Medium: 1, Intricate: 2, Expert: 3 };
+export const LEVEL = { Beginner: 0, Medium: 1, Intricate: 2, Expert: 3, Master: 4 };
 CATALOG.sort((a, c) => LEVEL[a.difficulty] - LEVEL[c.difficulty]);
 
 const cache = new Map();
@@ -581,8 +581,9 @@ export function getArtwork(id) {
 }
 
 export function sessionLabel(n) {
-  if (n < 200) return 'Short session';
-  if (n < 500) return 'Relaxed session';
-  if (n < 1000) return 'Long session';
-  return 'Epic session';
+  if (n < 200) return 'About 10 min';
+  if (n < 500) return 'About 25 min';
+  if (n < 1000) return 'About 45 min';
+  if (n < 2000) return 'About 1½ hours';
+  return 'Several hours';
 }

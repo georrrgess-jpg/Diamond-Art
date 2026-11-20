@@ -357,8 +357,14 @@ export class Board {
       ctx.restore();
       again = true;
     }
+    if (this.h.onFrame) this.h.onFrame();
     if (again) this.render();
   }
+  centerOn(wx, wy, animate = false) {
+    const s = this.cam.s;
+    this.animateTo({ s, x: this.W / 2 - wx * s, y: this.H / 2 - wy * s }, animate);
+  }
+  get zoomRatio() { return this.cam.s / this.fitScale; }
 
   _buildLayer(now) {
     const W = this.W, H = this.H, dpr = this.dpr, cam = this.cam;
@@ -432,7 +438,16 @@ export class Board {
   tryPlace(i, isTap) {
     if (i < 0 || this.filled[i]) return false;
     const g = this.art.sockets[i];
-    if (Math.min(g.w, g.h) * this.cam.s < 6) { this.h.onTooSmall && this.h.onTooSmall(); return false; }
+    if (Math.min(g.w, g.h) * this.cam.s < (isTap ? 12 : 6)) {
+      // too small to tap reliably: zoom in around the tapped gem instead
+      if (isTap) {
+        const c = this.cam, s = Math.min(this.maxScale, Math.max(c.s * 2.5, 30 / Math.min(g.w, g.h)));
+        const sx = c.x + g.x * c.s, sy = c.y + g.y * c.s;
+        this.animateTo({ s, x: sx - g.x * s, y: sy - g.y * s });
+      }
+      this.h.onTooSmall && this.h.onTooSmall(isTap);
+      return false;
+    }
     if (g.p !== this.sel) {
       if (isTap) { this.wobble = { i, t: performance.now() }; this.render(); this.h.onWrong && this.h.onWrong(g.p); }
       return false;
@@ -585,10 +600,11 @@ export class Board {
   }
 }
 
-export function renderThumb(art, size, filled) {
-  const c = document.createElement('canvas');
+export function renderThumb(art, size, filled, canvas) {
+  const c = canvas || document.createElement('canvas');
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  c.width = c.height = Math.round(size * dpr);
+  const px = Math.round(size * dpr);
+  if (c.width !== px || c.height !== px) { c.width = px; c.height = px; }
   const ctx = c.getContext('2d');
   drawArtwork(ctx, art, fitCamera(art, size, size, 0.03), size, size, dpr, { all: !filled, filled, bg: '#fbf8f2', cache: thumbCache });
   return c;
