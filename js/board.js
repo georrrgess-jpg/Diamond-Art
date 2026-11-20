@@ -3,6 +3,10 @@ import { SpriteCache, makeTones, traceOutline, insideUnit, gemVariant, rgbStr } 
 
 const TAU = Math.PI * 2;
 const mainCache = new SpriteCache(16e6);
+// Canvas colours of the active theme (see themes.js); mutated by setCanvasTheme.
+export const THEME = { id: 'ivory', plateIn: '#fffdf9', plateOut: '#f7f1e5', rim: '#e6dccb', plateShadow: 'rgba(90,70,40,0.2)', socket: '#efe8dc', socketShade: 'rgba(120,96,62,0.42)', socketEdge: 'rgba(160,138,104,0.55)', label: '#8a7e6c', labelDim: 'rgba(130,116,96,0.7)', exportBg: '#f8f4ec', hint: '196,150,60' };
+export function setCanvasTheme(id, c) { Object.assign(THEME, c, { id }); mainCache.pending.clear(); }
+const transparentOf = (c) => c.replace(/rgba?\(([^,]+),([^,]+),([^,)]+)(?:,[^)]*)?\)/, 'rgba($1,$2,$3,0)');
 const toneCache = new Map();
 export function tonesFor(entry) {
   let t = toneCache.get(entry.key);
@@ -18,8 +22,8 @@ export function drawArtwork(ctx, art, cam, W, H, dpr, o = {}) {
   const filled = o.filled, all = o.all, sel = o.sel ?? -1, now = o.now || 0;
   const skip = o.skip, fast = !!o.fast;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = o.bg || '#f6f1e8';
-  ctx.fillRect(0, 0, W, H);
+  if (!o.bg || o.bg === 'transparent') ctx.clearRect(0, 0, W, H);
+  else { ctx.fillStyle = o.bg; ctx.fillRect(0, 0, W, H); }
   const { s, x: ox, y: oy } = cam;
 
   // plate (soft shadow via gradient for circles: much cheaper than shadowBlur)
@@ -27,23 +31,25 @@ export function drawArtwork(ctx, art, cam, W, H, dpr, o = {}) {
   const plateR = (art.plate.type === 'circle' ? art.plate.r : art.R) * s;
   const blur = Math.max(6, Math.min(36, plateR * 0.08));
   const sg = ctx.createRadialGradient(ox, oy + blur * 0.35, plateR * 0.96, ox, oy + blur * 0.35, plateR + blur);
-  sg.addColorStop(0, 'rgba(90,70,40,0.16)');
-  sg.addColorStop(1, 'rgba(90,70,40,0)');
+  sg.addColorStop(0, THEME.plateShadow);
+  sg.addColorStop(1, transparentOf(THEME.plateShadow));
   if (art.plate.type === 'circle') {
     ctx.fillStyle = sg;
     ctx.beginPath(); ctx.arc(ox, oy + blur * 0.35, plateR + blur, 0, TAU); ctx.fill();
   } else {
-    ctx.shadowColor = 'rgba(90,70,40,0.14)'; ctx.shadowBlur = blur * dpr; ctx.shadowOffsetY = blur * 0.35 * dpr;
+    ctx.shadowColor = THEME.plateShadow; ctx.shadowBlur = blur * dpr; ctx.shadowOffsetY = blur * 0.35 * dpr;
   }
   ctx.beginPath();
   if (art.plate.type === 'circle') ctx.arc(ox, oy, art.plate.r * s, 0, TAU);
   else art.plate.pts.forEach(([px, py], i) => (i ? ctx.lineTo(ox + px * s, oy + py * s) : ctx.moveTo(ox + px * s, oy + py * s)));
   ctx.closePath();
-  ctx.fillStyle = '#fdfbf7';
+  const pg = ctx.createRadialGradient(ox, oy - plateR * 0.3, 0, ox, oy, plateR * 1.15);
+  pg.addColorStop(0, THEME.plateIn); pg.addColorStop(1, THEME.plateOut);
+  ctx.fillStyle = pg;
   ctx.fill();
   ctx.shadowColor = 'transparent';
   ctx.lineWidth = Math.max(0.8, 2 * s);
-  ctx.strokeStyle = '#e8dfd0';
+  ctx.strokeStyle = THEME.rim;
   ctx.stroke();
   ctx.restore();
 
@@ -60,7 +66,7 @@ export function drawArtwork(ctx, art, cam, W, H, dpr, o = {}) {
     if (isFilled) { gems.push(i); continue; }
     const md = Math.max(g.w, g.h) * s;
     const sx = ox + g.x * s, sy = oy + g.y * s;
-    const spr = cache.get('s', g.shape, g.w, g.h, md * dpr, g.rot, null, 0, 0, fast);
+    const spr = cache.get('s', g.shape, g.w, g.h, md * dpr, g.rot, THEME, THEME.id, 0, fast);
     const k = (md * dpr) / spr.px;
     ctx.setTransform(k, 0, 0, k, sx * dpr, sy * dpr);
     ctx.drawImage(spr.canvas, -spr.canvas.width / 2, -spr.canvas.height / 2);
@@ -95,7 +101,7 @@ export function drawArtwork(ctx, art, cam, W, H, dpr, o = {}) {
       const isSel = g.p === sel;
       const font = `${isSel ? 700 : 600} ${fs.toFixed(1)}px ui-sans-serif, system-ui, sans-serif`;
       if (font !== lastFont) { ctx.font = font; lastFont = font; }
-      ctx.fillStyle = isSel ? rgbStr(tonesFor(pal[g.p])[0]) : (sel >= 0 ? 'rgba(130,116,96,0.7)' : '#8a7e6c');
+      ctx.fillStyle = isSel ? rgbStr(tonesFor(pal[g.p])[0]) : (sel >= 0 ? THEME.labelDim : THEME.label);
       let lx = 0, ly = 0;
       if (g.shape === 'teardrop') { ly = g.h * 0.14 * s; }
       const c = Math.cos(g.rot), sn = Math.sin(g.rot);
@@ -158,7 +164,7 @@ export class Board {
     this.render();
     this._glintLoop();
   }
-  unload() { this.art = null; clearTimeout(this._glintT); this.layer = null; }
+  unload() { this.art = null; clearTimeout(this._glintT); this.layer = null; this._pool = null; }
   invalidate() { if (this.layer) this.layer.dirty = true; this.render(); }
 
   _buildGrid() {
@@ -263,17 +269,17 @@ export class Board {
       const k = cam.s / L.s, ox = cam.x - k * (L.cx + L.mx), oy = cam.y - k * (L.cy + L.my);
       const covers = ox <= 0.5 && oy <= 0.5 && ox + L.LW * k >= this.W - 0.5 && oy + L.LH * k >= this.H - 0.5;
       if (moving) need = (!covers || k < 0.6 || k > 1.8) && now - L.t > 200;
-      else need = Math.abs(k - 1) > 1e-4 || !covers || Math.abs(ox + L.mx) > L.mx * 0.7 || Math.abs(oy + L.my) > L.my * 0.7;
+      else need = Math.abs(k - 1) > 1e-4 || L.ldpr !== dpr || !covers || Math.abs(ox + L.mx) > L.mx * 0.7 || Math.abs(oy + L.my) > L.my * 0.7;
     }
-    if (need) L = this._buildLayer(now);
+    if (need) L = this._buildLayer(now, moving);
     {
       const k = cam.s / L.s;
       let ox = cam.x - k * (L.cx + L.mx), oy = cam.y - k * (L.cy + L.my);
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.fillStyle = '#f6f1e8';
-      ctx.fillRect(0, 0, this.cv.width, this.cv.height);
+      ctx.clearRect(0, 0, this.cv.width, this.cv.height);
       if (Math.abs(k - 1) < 1e-4) { ox = Math.round(ox * dpr) / dpr; oy = Math.round(oy * dpr) / dpr; }
-      ctx.setTransform(k, 0, 0, k, ox * dpr, oy * dpr);
+      const q = (k * dpr) / L.ldpr;
+      ctx.setTransform(q, 0, 0, q, ox * dpr, oy * dpr);
       ctx.drawImage(L.cv, 0, 0);
     }
     // placement animations drawn on top, then committed into the layer
@@ -305,7 +311,7 @@ export class Board {
         const g = this.art.sockets[this.hint.i], s = this.cam.s;
         const r = Math.max(g.w, g.h) * s * 0.5;
         const ph = (t * 3) % 1;
-        ctx.strokeStyle = `rgba(196,150,60,${0.9 * (1 - ph)})`;
+        ctx.strokeStyle = `rgba(${THEME.hint},${0.9 * (1 - ph)})`;
         ctx.lineWidth = 2.5;
         ctx.beginPath(); ctx.arc(this.cam.x + g.x * s, this.cam.y + g.y * s, r + 4 + ph * 18, 0, TAU); ctx.stroke();
         again = true;
@@ -366,17 +372,22 @@ export class Board {
   }
   get zoomRatio() { return this.cam.s / this.fitScale; }
 
-  _buildLayer(now) {
-    const W = this.W, H = this.H, dpr = this.dpr, cam = this.cam;
+  // While the camera is moving the intermediate layer is drawn at reduced
+  // resolution (invisible in motion, ~3x cheaper); it is redrawn sharp on settle.
+  _buildLayer(now, lowRes = false) {
+    const W = this.W, H = this.H, cam = this.cam, dpr = lowRes ? Math.max(0.75, this.dpr * 0.55) : this.dpr;
     const mx = Math.round(W * 0.25), my = Math.round(H * 0.25), LW = W + 2 * mx, LH = H + 2 * my;
-    let L = this.layer;
     const pw = Math.round(LW * dpr), ph = Math.round(LH * dpr);
+    // two pooled layers (sharp + in-motion) so switching never reallocates
+    const slot = lowRes ? 1 : 0;
+    this._pool = this._pool || [];
+    let L = this._pool[slot];
     if (!L || L.cv.width !== pw || L.cv.height !== ph) {
       const cv = (L && L.cv) || document.createElement('canvas');
       cv.width = pw; cv.height = ph;
-      L = { cv, ctx: cv.getContext('2d') };
+      L = this._pool[slot] = { cv, ctx: cv.getContext('2d') };
     }
-    Object.assign(L, { s: cam.s, cx: cam.x, cy: cam.y, mx, my, LW, LH, t: now, dirty: false });
+    Object.assign(L, { s: cam.s, cx: cam.x, cy: cam.y, mx, my, LW, LH, t: now, dirty: false, ldpr: dpr });
     drawArtwork(L.ctx, this.art, { s: cam.s, x: cam.x + mx, y: cam.y + my }, LW, LH, dpr, { filled: this.filled, sel: this.sel, skip: this.anims, fast: true });
     if (mainCache.pending.size) this._sharpen();
     this.layer = L;
@@ -398,7 +409,7 @@ export class Board {
   _commitGem(i) {
     const L = this.layer;
     if (!L || L.dirty) return;
-    drawGem(L.ctx, this.art, i, { s: L.s, x: L.cx + L.mx, y: L.cy + L.my }, this.dpr, mainCache, 1, 0, 1, true);
+    drawGem(L.ctx, this.art, i, { s: L.s, x: L.cx + L.mx, y: L.cy + L.my }, L.ldpr, mainCache, 1, 0, 1, true);
   }
 
   spark(wx, wy, n, size) {
@@ -606,7 +617,7 @@ export function renderThumb(art, size, filled, canvas) {
   const px = Math.round(size * dpr);
   if (c.width !== px || c.height !== px) { c.width = px; c.height = px; }
   const ctx = c.getContext('2d');
-  drawArtwork(ctx, art, fitCamera(art, size, size, 0.03), size, size, dpr, { all: !filled, filled, bg: '#fbf8f2', cache: thumbCache });
+  drawArtwork(ctx, art, fitCamera(art, size, size, 0.03), size, size, dpr, { all: !filled, filled, bg: 'transparent', cache: thumbCache });
   return c;
 }
 const thumbCache = new SpriteCache(3e6);
@@ -615,6 +626,6 @@ export function exportPNG(art, filled, px = 2400) {
   const c = document.createElement('canvas');
   c.width = c.height = px;
   const ctx = c.getContext('2d');
-  drawArtwork(ctx, art, fitCamera(art, px, px, 0.06), px, px, 1, { filled, bg: '#f8f4ec', cache: new SpriteCache(40e6) });
+  drawArtwork(ctx, art, fitCamera(art, px, px, 0.06), px, px, 1, { filled, bg: THEME.exportBg, cache: new SpriteCache(40e6) });
   return c;
 }

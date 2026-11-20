@@ -28,9 +28,12 @@
             <p class="tagline">Gem mosaics, one facet at a time</p>
           </div>
         </div>
-        <div class="stats" aria-label="Your collection">
-          <div class="stat"><b id="st-done">0</b><span id="st-done-label">finished</span></div>
-          <div class="stat"><b id="st-gems">0</b><span>gems placed</span></div>
+        <div class="head-right">
+          <div class="stats" aria-label="Your collection">
+            <div class="stat"><b id="st-done">0</b><span id="st-done-label">finished</span></div>
+            <div class="stat"><b id="st-gems">0</b><span>gems placed</span></div>
+          </div>
+          <button class="theme-btn" id="btn-theme" aria-label="Change theme"><span class="theme-dot" aria-hidden="true"></span><span>Theme</span></button>
         </div>
       </header>
 
@@ -106,6 +109,7 @@
       <label class="row"><span>Jump to next gem when one is done</span><input type="checkbox" id="opt-auto" class="switch"></label>
       <label class="row"><span>Reduce motion</span><input type="checkbox" id="opt-motion" class="switch"></label>
       <hr>
+      <button class="row btn-row" id="m-theme">Theme <span class="theme-dot" aria-hidden="true"></span></button>
       <button class="row btn-row" id="m-help">How to play</button>
       <button class="row btn-row" id="m-export">Save image</button>
       <button class="row btn-row danger" id="m-restart">Restart this artwork…</button>

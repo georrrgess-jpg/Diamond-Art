@@ -345,17 +345,18 @@ export function paintGem(ctx, shape, W, H, rot, tones, variant = 0, withShadow =
 }
 
 // Empty recessed socket
-export function paintSocket(ctx, shape, W, H, rot) {
+const SOCKET_DEFAULT = { socket: '#efe8dc', socketShade: 'rgba(120,96,62,0.42)', socketEdge: 'rgba(160,138,104,0.55)' };
+export function paintSocket(ctx, shape, W, H, rot, th = SOCKET_DEFAULT) {
   const S = Math.max(W, H), sh = SHAPES[shape];
   ctx.save();
   ctx.rotate(rot);
   poly(ctx, sh.outline, W, H);
-  ctx.fillStyle = '#efe8dc';
+  ctx.fillStyle = th.socket;
   ctx.fill();
   ctx.save();
   ctx.clip();
   ctx.rotate(-rot);
-  ctx.shadowColor = 'rgba(120,96,62,0.42)';
+  ctx.shadowColor = th.socketShade;
   ctx.shadowBlur = Math.max(1, S * 0.14);
   ctx.shadowOffsetX = S * 0.035; ctx.shadowOffsetY = S * 0.06;
   ctx.rotate(rot);
@@ -365,12 +366,12 @@ export function paintSocket(ctx, shape, W, H, rot) {
   ctx.moveTo(o[0][0] * W, o[0][1] * H);
   for (let i = o.length - 1; i >= 0; i--) ctx.lineTo(o[i][0] * W, o[i][1] * H);
   ctx.closePath();
-  ctx.fillStyle = '#efe8dc';
+  ctx.fillStyle = th.socket;
   ctx.fill();
   ctx.restore();
   poly(ctx, sh.outline, W, H);
   ctx.lineWidth = Math.max(0.6, S * 0.03);
-  ctx.strokeStyle = 'rgba(160,138,104,0.55)';
+  ctx.strokeStyle = th.socketEdge;
   ctx.stroke();
   ctx.restore();
 }
@@ -416,7 +417,7 @@ export class SpriteCache {
       const x = c.getContext('2d');
       x.translate(D / 2, D / 2);
       if (kind === 'g') paintGem(x, shape, W, H, rbAngle, tones, variant);
-      else paintSocket(x, shape, W, H, rbAngle);
+      else paintSocket(x, shape, W, H, rbAngle, tones || undefined);
       return { canvas: c, px: bpx, rot: rbAngle, period };
     };
     if (fast) {

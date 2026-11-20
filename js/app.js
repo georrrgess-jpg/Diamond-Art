@@ -1,7 +1,8 @@
 import { CATALOG, getArtwork, sessionLabel, LEVEL, GEMS } from './artworks.js';
 import { META } from './meta.js';
 import { COLLECTION_SIZE } from './collection2.js';
-import { Board, renderThumb, exportPNG, tonesFor, fitCamera } from './board.js';
+import { Board, renderThumb, exportPNG, tonesFor, fitCamera, setCanvasTheme } from './board.js';
+import { THEMES, themeById } from './themes.js';
 import { paintGem, rgbStr } from './gems.js';
 import * as store from './store.js';
 import * as sfx from './audio.js';
@@ -37,7 +38,7 @@ const fmtTime = (ms) => { const m = Math.round(ms / 60000); return m < 1 ? 'unde
 
 // ---------------------------------------------------------------- state
 const S = {
-  settings: { sound: true, autoAdvance: true, reduced: null, vibe: true, coached: false },
+  settings: { sound: true, autoAdvance: true, reduced: null, vibe: true, coached: false, theme: 'ivory' },
   favorites: new Set(),
   summary: {}, // artId -> {count,total,completed,updated,time}
   filters: { status: 'all', diff: 'all', cat: 'all' },
@@ -460,7 +461,7 @@ function openModal(html, actions, clear = false) {
   const first = sh.querySelector('.btn.primary') || sh.querySelector('.btn');
   first && first.focus();
 }
-function closeModal() { $('#modal').hidden = true; modalActions = null; modalReturn && modalReturn.focus && modalReturn.focus(); }
+function closeModal() { const sh = document.querySelector('#modal .sheet'); sh.classList.remove('wide'); sh.onclick = null; $('#modal').hidden = true; modalActions = null; modalReturn && modalReturn.focus && modalReturn.focus(); }
 $('#modal').addEventListener('click', (e) => {
   const b = e.target.closest('[data-a]');
   if (b && modalActions && modalActions[b.dataset.a]) modalActions[b.dataset.a]();
@@ -514,6 +515,54 @@ $('#m-restart').onclick = () => {
 };
 function applyMotion() { board.reduced = reducedMotion(); document.documentElement.classList.toggle('reduced', reducedMotion()); }
 
+// ---------------------------------------------------------------- themes
+function applyTheme(id, rerender = true) {
+  const t = themeById(id), root = document.documentElement;
+  for (const [k, v] of Object.entries(t.css)) root.style.setProperty(k, v);
+  root.style.colorScheme = t.dark ? 'dark' : 'light';
+  root.dataset.skin = t.id;
+  const meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.content = t.css['--bg'];
+  setCanvasTheme(t.id, t.canvas);
+  thumbCache.clear();
+  if (!rerender) return;
+  if (S.cur) { board.invalidate(); mmDirty(); mm.size = 0; }
+  if (!$('#gallery').hidden) renderGallery();
+}
+function gemDot(c) { return `radial-gradient(circle at 34% 30%, rgba(255,255,255,.95) 0 14%, ${c} 46%, ${c} 66%, rgba(0,0,0,.45) 100%)`; }
+function themeTile(t) {
+  const dots = t.dots.concat(t.dots).slice(0, 8).map((c, k) => {
+    const a = (k / 8) * Math.PI * 2, r = 22;
+    return `<i style="left:${33 + r * Math.cos(a)}px;top:${33 + r * Math.sin(a)}px;background:${gemDot(c)}"></i>`;
+  }).join('') + `<i style="left:33px;top:33px;width:16px;height:16px;margin:-8px 0 0 -8px;background:${gemDot(t.dots[0])}"></i>`;
+  const on = S.settings.theme === t.id;
+  return `<button class="theme-tile" data-theme="${t.id}" aria-pressed="${on}">
+    <span class="tp" style="background:${t.css['--stage-bg']}">
+      <span class="plate" style="background:radial-gradient(circle at 50% 35%, ${t.canvas.plateIn}, ${t.canvas.plateOut});box-shadow:0 4px 14px ${t.canvas.plateShadow}, inset 0 0 0 1.5px ${t.canvas.rim}">${dots}</span>
+      <span class="ui" style="background:${t.css['--surface']};box-shadow:inset 22px 0 0 ${t.css['--gold']}"></span>
+    </span>
+    <b>${t.name}${on ? ICON.check : ''}</b></button>`;
+}
+function openThemes() {
+  const render = () => `
+    <h3 id="modal-title">Choose a theme</h3>
+    <p>Themes change the menus and the board your gems sit on. Gem colours stay true to their numbers.</p>
+    <div class="themes">${THEMES.map(themeTile).join('')}</div>
+    <div class="actions"><button class="btn primary" data-a="done">Done</button></div>`;
+  openModal(render(), { done: closeModal });
+  const sheet = document.querySelector('#modal .sheet');
+  sheet.classList.add('wide');
+  sheet.onclick = (e) => {
+    const b = e.target.closest('.theme-tile'); if (!b) return;
+    S.settings.theme = b.dataset.theme; saveSettings();
+    applyTheme(b.dataset.theme);
+    sfx.select();
+    sheet.querySelector('.themes').innerHTML = THEMES.map(themeTile).join('');
+    sheet.querySelector(`.theme-tile[data-theme="${b.dataset.theme}"]`).focus();
+  };
+}
+$('#btn-theme').onclick = openThemes;
+$('#m-theme').onclick = () => { closeMenu(); openThemes(); };
+
 // ---------------------------------------------------------------- tools / keys
 function setMode(m) {
   board.mode = m;
@@ -558,6 +607,7 @@ sysReduced.addEventListener && sysReduced.addEventListener('change', applyMotion
   try {
     const st = await store.get('settings');
     if (st && typeof st === 'object') for (const k of ['sound', 'autoAdvance', 'reduced', 'vibe', 'coached']) if (typeof st[k] === 'boolean') S.settings[k] = st[k];
+    if (st && typeof st.theme === 'string') S.settings.theme = themeById(st.theme).id;
     const fv = await store.get('favorites');
     if (Array.isArray(fv)) S.favorites = new Set(fv.filter((x) => typeof x === 'string'));
     await Promise.all(CATALOG.map(async (m) => {
@@ -570,6 +620,7 @@ sysReduced.addEventListener && sysReduced.addEventListener('change', applyMotion
   } catch (err) { console.warn('Lustra: could not read saved data', err); }
   sfx.setSound(S.settings.sound);
   applyMotion();
+  applyTheme(S.settings.theme, false);
   renderGallery();
 })();
 
