@@ -16,7 +16,7 @@ const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
 export function drawArtwork(ctx, art, cam, W, H, dpr, o = {}) {
   const cache = o.cache || mainCache;
   const filled = o.filled, all = o.all, sel = o.sel ?? -1, now = o.now || 0;
-  const anims = o.anims, wobble = o.wobble;
+  const skip = o.skip, fast = !!o.fast;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = o.bg || '#f6f1e8';
   ctx.fillRect(0, 0, W, H);
@@ -56,15 +56,11 @@ export function drawArtwork(ctx, art, cam, W, H, dpr, o = {}) {
     const g = S[i];
     const ext = Math.max(g.w, g.h) * 0.75;
     if (g.x + ext < vx0 || g.x - ext > vx1 || g.y + ext < vy0 || g.y - ext > vy1) continue;
-    const isFilled = all || (filled && filled[i]);
+    const isFilled = all || (filled && filled[i] && !(skip && skip.has(i)));
     if (isFilled) { gems.push(i); continue; }
     const md = Math.max(g.w, g.h) * s;
-    let sx = ox + g.x * s, sy = oy + g.y * s;
-    if (wobble && wobble.i === i) {
-      const t = (now - wobble.t) / 320;
-      if (t < 1) sx += Math.sin(t * 22) * (1 - t) * Math.min(5, md * 0.12);
-    }
-    const spr = cache.get('s', g.shape, g.w, g.h, md * dpr, g.rot, null, 0, 0);
+    const sx = ox + g.x * s, sy = oy + g.y * s;
+    const spr = cache.get('s', g.shape, g.w, g.h, md * dpr, g.rot, null, 0, 0, fast);
     const k = (md * dpr) / spr.px;
     ctx.setTransform(k, 0, 0, k, sx * dpr, sy * dpr);
     ctx.drawImage(spr.canvas, -spr.canvas.width / 2, -spr.canvas.height / 2);
@@ -108,30 +104,24 @@ export function drawArtwork(ctx, art, cam, W, H, dpr, o = {}) {
   }
 
   // pass 2: gems
-  for (const i of gems) {
-    const g = S[i];
-    let sc = 1, lift = 0, alpha = 1;
-    if (anims) {
-      const st = anims.get(i);
-      if (st !== undefined) {
-        const t = Math.min(1, (now - st) / 260);
-        if (t >= 1) anims.delete(i);
-        else { sc = 0.55 + 0.45 * easeOutBack(t); lift = (1 - t) * (1 - t) * 6; alpha = Math.min(1, t * 3); }
-      }
-    }
-    const md = Math.max(g.w, g.h) * s;
-    const spr = cache.get('g', g.shape, g.w, g.h, md * dpr, g.rot, tonesFor(pal[g.p]), pal[g.p].key, gemVariant(g.id));
-    const k = (md * dpr * sc) / spr.px;
-    ctx.setTransform(k, 0, 0, k, (ox + g.x * s) * dpr, (oy + g.y * s - lift) * dpr);
-    if (alpha < 1) ctx.globalAlpha = alpha;
-    ctx.drawImage(spr.canvas, -spr.canvas.width / 2, -spr.canvas.height / 2);
-    if (alpha < 1) ctx.globalAlpha = 1;
-  }
+  for (const i of gems) drawGem(ctx, art, i, cam, dpr, cache, 1, 0, 1, fast);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
+// One gem at socket i; sc/lift/alpha drive the placement animation.
+export function drawGem(ctx, art, i, cam, dpr, cache = mainCache, sc = 1, lift = 0, alpha = 1, fast = false) {
+  const g = art.sockets[i], pal = art.palette[g.p], s = cam.s;
+  const md = Math.max(g.w, g.h) * s;
+  const spr = cache.get('g', g.shape, g.w, g.h, md * dpr, g.rot, tonesFor(pal), pal.key, gemVariant(g.id), fast);
+  const k = (md * dpr * sc) / spr.px;
+  ctx.setTransform(k, 0, 0, k, (cam.x + g.x * s) * dpr, (cam.y + g.y * s - lift) * dpr);
+  if (alpha < 1) ctx.globalAlpha = alpha;
+  ctx.drawImage(spr.canvas, -spr.canvas.width / 2, -spr.canvas.height / 2);
+  if (alpha < 1) ctx.globalAlpha = 1;
+}
+
 export function fitCamera(art, W, H, pad = 0.05) {
-  const s = Math.min(W, H) / (art.R * 2 * (1 + pad));
+  const s = Math.min(W / (art.hx * 2 * (1 + pad)), H / (art.hy * 2 * (1 + pad)));
   return { s, x: W / 2, y: H / 2 };
 }
 
@@ -150,6 +140,7 @@ export class Board {
     this.dirty = false;
     this.camAnim = null;
     this.hint = null; this.wobble = null; this.shimmer = null;
+    this.layer = null; this._lastCam = 0;
     this._bind();
     this.ro = new ResizeObserver(() => this.resize());
     this.ro.observe(canvas.parentElement);
@@ -160,13 +151,15 @@ export class Board {
     this.filled = filled;
     this.sel = sel;
     this.anims.clear(); this.parts.length = 0; this.hint = null; this.shimmer = null;
+    this.invalidate();
     this._buildGrid();
     this.resize(true);
     if (cam && cam.s) { this.cam = { ...cam }; this._clamp(); } else this.fit(false);
     this.render();
     this._glintLoop();
   }
-  unload() { this.art = null; clearTimeout(this._glintT); }
+  unload() { this.art = null; clearTimeout(this._glintT); this.layer = null; }
+  invalidate() { if (this.layer) this.layer.dirty = true; this.render(); }
 
   _buildGrid() {
     const C = (this.cell = 40), g = new Map();
@@ -202,7 +195,7 @@ export class Board {
     this.cv.width = Math.round(W * dpr); this.cv.height = Math.round(H * dpr);
     this.cv.style.width = W + 'px'; this.cv.style.height = H + 'px';
     if (this.cam && this.art) this._clamp();
-    this.render();
+    this.invalidate();
   }
 
   // ---------------- camera
@@ -231,7 +224,10 @@ export class Board {
     this.render();
   }
   _camChanged() {
+    this._lastCam = performance.now();
     this.render();
+    clearTimeout(this._settleT);
+    this._settleT = setTimeout(() => this.render(), 170);
     clearTimeout(this._camT);
     this._camT = setTimeout(() => this.h.onCamera && this.h.onCamera({ ...this.cam }), 400);
   }
@@ -258,12 +254,48 @@ export class Board {
       this.cam = { s, x: this.W / 2 - wx * s, y: this.H / 2 - wy * s };
       if (t >= 1) { this.camAnim = null; this._clamp(); this._camChanged(); } else again = true;
     }
-    const ctx = this.ctx;
-    drawArtwork(ctx, this.art, this.cam, this.W, this.H, this.dpr, {
-      filled: this.filled, sel: this.sel, now, anims: this.anims, wobble: this.wobble,
-    });
+    const ctx = this.ctx, dpr = this.dpr, cam = this.cam;
+    // --- cached board layer: one blit per frame while the camera moves
+    let L = this.layer;
+    const moving = !!this.camAnim || (this.gesture && this.gesture.type !== 'paint') || now - this._lastCam < 150;
+    let need = !L || L.dirty;
+    if (!need) {
+      const k = cam.s / L.s, ox = cam.x - k * (L.cx + L.mx), oy = cam.y - k * (L.cy + L.my);
+      const covers = ox <= 0.5 && oy <= 0.5 && ox + L.LW * k >= this.W - 0.5 && oy + L.LH * k >= this.H - 0.5;
+      if (moving) need = (!covers || k < 0.6 || k > 1.8) && now - L.t > 200;
+      else need = Math.abs(k - 1) > 1e-4 || !covers || Math.abs(ox + L.mx) > L.mx * 0.7 || Math.abs(oy + L.my) > L.my * 0.7;
+    }
+    if (need) L = this._buildLayer(now);
+    {
+      const k = cam.s / L.s;
+      let ox = cam.x - k * (L.cx + L.mx), oy = cam.y - k * (L.cy + L.my);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = '#f6f1e8';
+      ctx.fillRect(0, 0, this.cv.width, this.cv.height);
+      if (Math.abs(k - 1) < 1e-4) { ox = Math.round(ox * dpr) / dpr; oy = Math.round(oy * dpr) / dpr; }
+      ctx.setTransform(k, 0, 0, k, ox * dpr, oy * dpr);
+      ctx.drawImage(L.cv, 0, 0);
+    }
+    // placement animations drawn on top, then committed into the layer
+    for (const [i, st] of this.anims) {
+      const t = Math.min(1, (now - st) / 260);
+      if (t >= 1) { this.anims.delete(i); this._commitGem(i); drawGem(ctx, this.art, i, cam, dpr, mainCache, 1, 0, 1, true); continue; }
+      drawGem(ctx, this.art, i, cam, dpr, mainCache, 0.55 + 0.45 * easeOutBack(t), (1 - t) * (1 - t) * 6, Math.min(1, t * 3), true);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (this.anims.size) again = true;
-    if (this.wobble && now - this.wobble.t < 320) again = true;
+    if (this.wobble) {
+      const t = (now - this.wobble.t) / 360;
+      if (t >= 1 || this.filled[this.wobble.i]) this.wobble = null;
+      else {
+        const g = this.art.sockets[this.wobble.i];
+        const md = Math.min(g.w, g.h) * cam.s;
+        const dx = Math.sin(t * 24) * (1 - t) * Math.min(4, md * 0.12);
+        traceOutline(ctx, g.shape, cam.x + g.x * cam.s + dx, cam.y + g.y * cam.s, g.w * cam.s, g.h * cam.s, g.rot);
+        ctx.lineWidth = 2; ctx.strokeStyle = `rgba(184,84,70,${0.85 * (1 - t)})`; ctx.stroke();
+        again = true;
+      }
+    }
 
     // hint pulse
     if (this.hint) {
@@ -328,6 +360,41 @@ export class Board {
     if (again) this.render();
   }
 
+  _buildLayer(now) {
+    const W = this.W, H = this.H, dpr = this.dpr, cam = this.cam;
+    const mx = Math.round(W * 0.25), my = Math.round(H * 0.25), LW = W + 2 * mx, LH = H + 2 * my;
+    let L = this.layer;
+    const pw = Math.round(LW * dpr), ph = Math.round(LH * dpr);
+    if (!L || L.cv.width !== pw || L.cv.height !== ph) {
+      const cv = (L && L.cv) || document.createElement('canvas');
+      cv.width = pw; cv.height = ph;
+      L = { cv, ctx: cv.getContext('2d') };
+    }
+    Object.assign(L, { s: cam.s, cx: cam.x, cy: cam.y, mx, my, LW, LH, t: now, dirty: false });
+    drawArtwork(L.ctx, this.art, { s: cam.s, x: cam.x + mx, y: cam.y + my }, LW, LH, dpr, { filled: this.filled, sel: this.sel, skip: this.anims, fast: true });
+    if (mainCache.pending.size) this._sharpen();
+    this.layer = L;
+    return L;
+  }
+  // Build queued crisp sprites in small slices, then rebuild the layer once.
+  _sharpen() {
+    if (this._sharpT) return;
+    const step = () => {
+      this._sharpT = 0;
+      if (!this.art) { mainCache.pending.clear(); return; }
+      const moving = this.camAnim || (this.gesture && this.gesture.type !== 'paint') || performance.now() - this._lastCam < 150;
+      if (!moving) mainCache.drain(7);
+      if (mainCache.pending.size) this._sharpT = requestAnimationFrame(step);
+      else this.invalidate();
+    };
+    this._sharpT = requestAnimationFrame(step);
+  }
+  _commitGem(i) {
+    const L = this.layer;
+    if (!L || L.dirty) return;
+    drawGem(L.ctx, this.art, i, { s: L.s, x: L.cx + L.mx, y: L.cy + L.my }, this.dpr, mainCache, 1, 0, 1, true);
+  }
+
   spark(wx, wy, n, size) {
     if (this.reduced) return;
     for (let k = 0; k < n && this.parts.length < 40; k++) {
@@ -361,7 +428,7 @@ export class Board {
   }
 
   // ---------------- placement
-  setSelected(p) { this.sel = p; this.render(); }
+  setSelected(p) { this.sel = p; this.invalidate(); }
   tryPlace(i, isTap) {
     if (i < 0 || this.filled[i]) return false;
     const g = this.art.sockets[i];
@@ -371,7 +438,7 @@ export class Board {
       return false;
     }
     this.filled[i] = 1;
-    if (!this.reduced) this.anims.set(i, performance.now());
+    if (!this.reduced) this.anims.set(i, performance.now()); else this._commitGem(i);
     if (this.stroke) this.stroke.push(i);
     this.spark(g.x, g.y, isTap ? 2 : 1, Math.max(g.w, g.h));
     this.render();

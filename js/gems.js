@@ -378,7 +378,7 @@ export function paintSocket(ctx, shape, W, H, rot) {
 // ---------------------------------------------------------------- sprite cache
 const LOGB = Math.log(1.12);
 export class SpriteCache {
-  constructor(budgetPx = 14e6) { this.map = new Map(); this.px = 0; this.budget = budgetPx; }
+  constructor(budgetPx = 14e6) { this.map = new Map(); this.pending = new Map(); this.px = 0; this.budget = budgetPx; }
   _get(key, make) {
     let e = this.map.get(key);
     if (e) { this.map.delete(key); this.map.set(key, e); return e; }
@@ -392,20 +392,22 @@ export class SpriteCache {
     }
     return e;
   }
-  // returns {canvas, px, rot}; px = rendered max dimension
-  get(kind, shape, w, h, devPx, rot, tones, colorKey, variant) {
+  // returns {canvas, px, rot}; px = rendered max dimension.
+  // fast: if this exact size is not cached, reuse the nearest cached size and
+  // queue the crisp sprite for idle-time generation (see drain()).
+  get(kind, shape, w, h, devPx, rot, tones, colorKey, variant, fast = false) {
     const bucket = Math.max(10, Math.min(52, Math.round(Math.log(Math.max(3, devPx)) / LOGB)));
-    const bpx = Math.pow(1.12, bucket);
     const period = PERIOD[shape];
-    // fine rotation buckets (~2.25deg) so sprites can be drawn without per-gem rotation
     const steps = shape === 'round' ? 6 : Math.max(4, Math.round(period / (TAU / 160)));
-    let rr = ((rot % period) + period) % period;
+    const rr = ((rot % period) + period) % period;
     const rb = Math.round(rr / period * steps) % steps;
-    const rbAngle = rb * period / steps;
     const asp = Math.round((w / h) * 40);
-    const key = `${kind}|${shape}|${asp}|${bucket}|${rb}|${colorKey}|${variant}`;
-    const e = this._get(key, () => {
-      const ar = asp / 40;
+    const base = `${kind}|${shape}|${asp}|${rb}|${colorKey}|${variant}|`;
+    const key = base + bucket;
+    const hit = this.map.get(key);
+    if (hit) { this.map.delete(key); this.map.set(key, hit); return hit; }
+    const make = () => {
+      const bpx = Math.pow(1.12, bucket), rbAngle = rb * period / steps, ar = asp / 40;
       const W = ar >= 1 ? bpx : bpx * ar, H = ar >= 1 ? bpx / ar : bpx;
       const pad = Math.ceil(bpx * 0.2) + 2;
       const D = Math.ceil(Math.hypot(W, H)) + pad * 2;
@@ -416,9 +418,26 @@ export class SpriteCache {
       if (kind === 'g') paintGem(x, shape, W, H, rbAngle, tones, variant);
       else paintSocket(x, shape, W, H, rbAngle);
       return { canvas: c, px: bpx, rot: rbAngle, period };
-    });
-    return e;
+    };
+    if (fast) {
+      for (let d = 1; d <= 14; d++) {
+        const near = this.map.get(base + (bucket + d)) || this.map.get(base + (bucket - d));
+        if (near) { if (!this.pending.has(key)) this.pending.set(key, make); return near; }
+      }
+    }
+    this.pending.delete(key);
+    return this._get(key, make);
+  }
+  // Generate queued sprites for up to `ms` milliseconds. Returns how many were made.
+  drain(ms) {
+    const t0 = performance.now(); let n = 0;
+    for (const [key, make] of this.pending) {
+      this.pending.delete(key);
+      if (!this.map.has(key)) { this._get(key, make); n++; }
+      if (performance.now() - t0 > ms) break;
+    }
+    return n;
   }
 }
 
-export function gemVariant(id) { return Math.floor(hash(id, 99) * 3); }
+export function gemVariant(id) { return Math.floor(hash(id, 99) * 2); }

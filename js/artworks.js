@@ -33,6 +33,12 @@ export const GEMS = {
   cream: { name: 'Cream', hex: '#f4e4bf' },
   honey: { name: 'Honey', hex: '#9b5810' },
   peach: { name: 'Peach', hex: '#f5ad86' },
+  copper: { name: 'Copper', hex: '#c0652e' },
+  turquoise: { name: 'Turquoise', hex: '#22b2a4' },
+  sand: { name: 'Sand', hex: '#e2c99a' },
+  jade: { name: 'Jade', hex: '#4fae7a' },
+  sky: { name: 'Sky', hex: '#5fa8ee' },
+  sunset: { name: 'Sunset', hex: '#f08a3c' },
 };
 
 // ---------------------------------------------------------------- builder
@@ -87,10 +93,10 @@ class Builder {
 const polar = (R, th) => [R * Math.sin(th), -R * Math.cos(th)];
 
 // Ring of n gems. orient: 'out' (tip points outward), 'in', 'tan'
-function ring(b, R, n, shape, w, h, pal, { phase = 0, orient = 'out', force = true, gap, limit, twist = 0 } = {}) {
+function ring(b, R, n, shape, w, h, pal, { phase = 0, orient = 'out', force = true, gap, limit, twist = 0, cx = 0, cy = 0, start = 0 } = {}) {
   for (let i = 0; i < n; i++) {
-    const th = (i + phase) / n * TAU;
-    const [x, y] = polar(R, th);
+    const th = start + (i + phase) / n * TAU;
+    const [px, py] = polar(R, th), x = cx + px, y = cy + py;
     let rot = th + twist;
     if (orient === 'in') rot += Math.PI;
     else if (orient === 'tan') rot += Math.PI / 2;
@@ -297,14 +303,257 @@ function amberSunburst() {
   return { b, palette: ['amber', 'citrine', 'coral', 'cream', 'honey', 'crystal', 'peach'], plate: { type: 'circle', r: 514 } };
 }
 
+
+// ---------------------------------------------------------------- collection 2
+const SQ3 = Math.sqrt(3);
+const square = (h) => [[-h, -h], [h, -h], [h, h], [-h, h]];
+
+function lotusWheel() {
+  const b = new Builder();
+  const P = { rose: 0, blush: 1, mint: 2, em: 3, champ: 4, cry: 5 };
+  b.add('round', 0, 0, 58, 58, 0, P.champ, { force: true });
+  ring(b, 52, 8, 'marquise', 22, 46, P.rose);
+  ring(b, 50, 8, 'round', 12, 12, P.cry, { phase: 0.5 });
+  ring(b, 106, 16, 'marquise', 24, 62, (i) => (i % 2 ? P.blush : P.rose), { phase: 0.5 });
+  ring(b, 164, 16, 'teardrop', 30, 52, (i) => (i % 2 ? P.em : P.mint), { orient: 'in' });
+  ring(b, 156, 16, 'round', 12, 12, P.champ, { phase: 0.5, force: false, gap: 0.5 });
+  ring(b, 214, 32, 'round', 18, 18, (i) => (i % 2 ? P.em : P.blush));
+  ring(b, 254, 16, 'marquise', 20, 50, P.rose);
+  ring(b, 252, 16, 'round', 14, 14, P.mint, { phase: 0.5 });
+  return { b, palette: ['rose', 'blush', 'mint', 'emerald', 'champagne', 'crystal'], plate: { type: 'circle', r: 292 } };
+}
+
+function snowflake() {
+  const b = new Builder();
+  const P = { aqua: 0, ice: 1, lav: 2, cry: 3, mint: 4 };
+  b.add('hexagon', 0, 0, 48.5, 56, 0, P.aqua, { force: true });
+  for (let k = 0; k < 6; k++) {
+    const th = k * TAU / 6;
+    const at = (r, a = th) => polar(r, a);
+    const spine = [[58, 22, 34], [96, 20, 32], [134, 18, 28], [172, 16, 26], [208, 14, 22]];
+    spine.forEach(([r, w, h], j) => { const [x, y] = at(r); b.add('rhombus', x, y, w, h, th, j % 2 ? P.aqua : P.ice, { force: true }); });
+    [77, 115, 153, 190].forEach((r) => { const [x, y] = at(r); b.add('round', x, y, 10, 10, 0, P.cry, { force: true }); });
+    for (const [r0, ds] of [[96, [26, 46]], [172, [22, 38]]]) {
+      for (const sgn of [-1, 1]) {
+        const a = th + sgn * 0.95;
+        const [bx, by] = at(r0);
+        ds.forEach((d, j) => {
+          const [dx, dy] = polar(d, a);
+          if (j === ds.length - 1) b.add('round', bx + dx, by + dy, 10, 10, 0, P.cry, { force: true });
+          else b.add('marquise', bx + dx, by + dy, 11, 24, a, P.lav, { force: true });
+        });
+      }
+    }
+    const [tx, ty] = at(240); b.add('teardrop', tx, ty, 22, 36, th, P.aqua, { force: true });
+    const [mx, my] = at(122, th + TAU / 12); b.add('round', mx, my, 18, 18, 0, P.mint, { force: true });
+    const [nx, ny] = at(206, th + TAU / 12); b.add('marquise', nx, ny, 10, 24, th + TAU / 12, P.ice, { force: true });
+  }
+  ring(b, 274, 36, 'round', 12, 12, (i) => (i % 2 ? P.ice : P.cry), { force: false, gap: 0.5 });
+  return { b, palette: ['aqua', 'ice', 'lavender', 'crystal', 'mint'], plate: { type: 'circle', r: 296 } };
+}
+
+function compassRose() {
+  const b = new Builder();
+  const P = { tq: 0, cop: 1, sand: 2, mid: 3, cry: 4 };
+  b.add('round', 0, 0, 50, 50, 0, P.cop, { force: true });
+  ring(b, 120, 4, 'marquise', 52, 170, P.tq);
+  ring(b, 98, 4, 'marquise', 36, 110, P.mid, { phase: 0.5 });
+  ring(b, 62, 8, 'teardrop', 18, 30, P.sand, { phase: 0.5 });
+  ring(b, 168, 8, 'round', 22, 22, P.cop, { phase: 0.5 });
+  ring(b, 138, 8, 'round', 12, 12, P.sand, { phase: 0.5, force: false, gap: 0.5 });
+  ring(b, 200, 16, 'round', 12, 12, P.cry, { phase: 0.25, force: false, gap: 0.5 });
+  ring(b, 228, 32, 'round', 20, 20, (i) => (i % 2 ? P.sand : P.cop), { force: false, gap: 0.5 });
+  ring(b, 262, 16, 'rhombus', 16, 28, P.tq);
+  ring(b, 262, 16, 'round', 12, 12, P.cry, { phase: 0.5 });
+  return { b, palette: ['turquoise', 'copper', 'sand', 'midnight', 'crystal'], plate: { type: 'circle', r: 290 } };
+}
+
+function moroccanTile() {
+  const b = new Builder();
+  const P = { tq: 0, mid: 1, sand: 2, cop: 3, cream: 4, cry: 5 };
+  const T = 120;
+  for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) {
+    const cx = i * T, cy = j * T, odd = (i + j) & 1;
+    b.add('round', cx, cy, 28, 28, 0, odd ? P.cop : P.tq, { force: true });
+    ring(b, 33, 8, 'marquise', 12, 30, odd ? P.tq : P.mid, { cx, cy });
+    ring(b, 50, 4, 'round', 10, 10, P.cry, { cx, cy, phase: 0.5 });
+  }
+  for (let i = -3; i <= 2; i++) for (let j = -3; j <= 2; j++)
+    b.add('square', (i + 0.5) * T, (j + 0.5) * T, 26, 26, Math.PI / 4, (Math.abs(i + 0.5) + Math.abs(j + 0.5)) % 2 === 1 ? P.sand : P.cop, { force: true });
+  for (let i = -3; i <= 2; i++) for (let j = -2; j <= 2; j++) {
+    b.add('oval', (i + 0.5) * T, j * T, 12, 30, 0, P.cream, { force: true });
+    b.add('oval', j * T, (i + 0.5) * T, 12, 30, Math.PI / 2, P.cream, { force: true });
+  }
+  return { b, palette: ['turquoise', 'midnight', 'sand', 'copper', 'cream', 'crystal'], plate: { type: 'poly', pts: square(2.5 * T + 26) } };
+}
+
+function argyle() {
+  const b = new Builder();
+  const P = { rose: 0, blush: 1, garnet: 2, champ: 3, cry: 4 };
+  const g = 40, N = 6;
+  for (let i = -N; i <= N; i++) for (let j = -N; j <= N; j++) {
+    const d = Math.abs(i) + Math.abs(j);
+    const p = d <= 1 ? P.champ : d % 4 === 0 ? P.garnet : d % 4 === 2 ? P.rose : P.blush;
+    b.add('rhombus', i * g, j * g, g * 0.94, g * 0.94, 0, p, { force: true });
+  }
+  for (let i = -N; i < N; i++) for (let j = -N; j < N; j++) {
+    const d = Math.abs(i + 0.5) + Math.abs(j + 0.5);
+    b.add('square', (i + 0.5) * g, (j + 0.5) * g, g * 0.36, g * 0.36, Math.PI / 4, Math.round(d) % 4 < 2 ? P.champ : P.cry, { force: true });
+  }
+  return { b, palette: ['rose', 'blush', 'garnet', 'champagne', 'crystal'], plate: { type: 'poly', pts: square(N * g + g * 0.5 + 10) } };
+}
+
+function hexagram() {
+  const b = new Builder();
+  const P = { sap: 0, royal: 1, cry: 2, ice: 3, mid: 4 };
+  const Rt = 300, s = 16;
+  const tri = (off) => [0, 1, 2].map((k) => polar(Rt, off + k * TAU / 3));
+  const T1 = tri(0), T2 = tri(Math.PI / 3);
+  // signed distance inside triangle (positive inside)
+  const inside = (T, x, y) => Math.min(...[0, 1, 2].map((k) => {
+    const [ax, ay] = T[k], [bx, by] = T[(k + 1) % 3];
+    const ex = bx - ax, ey = by - ay, L = Math.hypot(ex, ey);
+    const side = (px, py) => (ex * (py - ay) - ey * (px - ax)) / L;
+    return side(x, y) * Math.sign(side(0, 0));
+  }));
+  const N = 14, gw = SQ3 * s * 0.92, gh = 2 * s * 0.92;
+  for (let r = -N; r <= N; r++) for (let q = -N; q <= N; q++) {
+    const x = s * SQ3 * (q + r / 2), y = s * 1.5 * r;
+    const d1 = inside(T1, x, y), d2 = inside(T2, x, y), dm = Math.max(d1, d2);
+    if (dm < s * 0.9) continue;
+    const d = Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r));
+    let p;
+    if (dm < s * 2.3) p = P.mid;
+    else if (d1 > 0 && d2 > 0) p = d === 0 ? P.cry : d % 3 === 0 ? P.sap : d % 3 === 1 ? P.ice : P.cry;
+    else p = d % 2 ? P.royal : P.ice;
+    b.add('hexagon', x, y, gw, gh, 0, p, { force: true });
+  }
+  const pts = []; const Ro = Rt + s * 0.6, Ri = Ro / SQ3;
+  for (let k = 0; k < 12; k++) pts.push(polar(k % 2 ? Ri : Ro, k * TAU / 12).map((v) => v));
+  return { b, palette: ['sapphire', 'royal', 'crystal', 'ice', 'midnight'], plate: { type: 'poly', pts } };
+}
+
+function tumblingBlocks() {
+  const b = new Builder();
+  const P = { ice: 0, royal: 1, mid: 2, cream: 3, cit: 4, amb: 5 };
+  const a = 27, N = 6;
+  for (let r = -N; r <= N; r++) for (let q = -N; q <= N; q++) {
+    const d = Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r));
+    if (d > N) continue;
+    const cx = a * SQ3 * (q + r / 2), cy = a * 1.5 * r;
+    const fam = d % 2 === 0 ? [P.cream, P.cit, P.amb] : [P.ice, P.royal, P.mid];
+    for (let k = 0; k < 3; k++) {
+      const ang = k * TAU / 3, c = Math.cos(ang), sn = Math.sin(ang);
+      const ox = 0, oy = -a / 2;
+      b.add('rhombus', cx + ox * c - oy * sn, cy + ox * sn + oy * c, a * SQ3 * 0.93, a * 0.93, ang, fam[k], { force: true });
+    }
+  }
+  const R = a * SQ3 * N + a * 1.35, pts = [];
+  for (let k = 0; k < 6; k++) { const an = k * TAU / 6; pts.push([R * Math.cos(an), R * Math.sin(an)]); }
+  return { b, palette: ['ice', 'royal', 'midnight', 'cream', 'citrine', 'amber'], plate: { type: 'poly', pts } };
+}
+
+function seaGlass() {
+  const b = new Builder();
+  const P = { teal: 0, aqua: 1, mint: 2, ice: 3, sand: 4, cry: 5 };
+  b.add('round', 0, 0, 50, 50, 0, P.cry, { force: true });
+  const GA = Math.PI * (3 - Math.sqrt(5)), c = 13;
+  for (let i = 8; i < 540; i++) {
+    const r = c * Math.sqrt(i), th = i * GA;
+    if (r > 300) break;
+    const s1 = i % 21, s2 = i % 34;
+    let p;
+    if (s1 < 2) p = P.teal;
+    else if (s2 < 3) p = P.aqua;
+    else if (s1 === 10) p = P.cry;
+    else p = r < 120 ? P.mint : r < 220 ? P.ice : P.sand;
+    const [x, y] = polar(r, th);
+    b.add('round', x, y, 19, 19, th, p, { gap: 0.4 });
+  }
+  ring(b, 320, 40, 'teardrop', 18, 32, (i) => (i % 2 ? P.teal : P.aqua));
+  return { b, palette: ['teal', 'aqua', 'mint', 'ice', 'sand', 'crystal'], plate: { type: 'circle', r: 342 } };
+}
+
+function vortex() {
+  const b = new Builder();
+  const P = { teal: 0, aqua: 1, lav: 2, violet: 3, mid: 4, cry: 5 };
+  b.add('round', 0, 0, 54, 54, 0, P.cry, { force: true });
+  ring(b, 50, 6, 'teardrop', 20, 36, P.aqua, { twist: 0.5 });
+  ring(b, 58, 6, 'round', 12, 12, P.lav, { phase: 0.5 });
+  const swirl = (r, th) => {
+    const u = (th / TAU) * 6 + r / 70;
+    if ((u * 2) % 1 < 0.2) return P.mid;
+    return [P.teal, P.aqua, P.lav, P.violet][Math.floor(u * 2) % 4];
+  };
+  fillRings(b, 74, 330, 18, swirl, { limit: inDisc(330), sym: 6 });
+  ring(b, 350, 48, 'marquise', 12, 30, (i) => (i % 2 ? P.violet : P.teal), { twist: 0.6, force: false, gap: 0.4 });
+  return { b, palette: ['teal', 'aqua', 'lavender', 'violet', 'midnight', 'crystal'], plate: { type: 'circle', r: 372 } };
+}
+
+function roseWindow() {
+  const b = new Builder();
+  const P = { ruby: 0, royal: 1, cit: 2, em: 3, mid: 4, cry: 5, garnet: 6 };
+  b.add('round', 0, 0, 50, 50, 0, P.cit, { force: true });
+  ring(b, 48, 8, 'teardrop', 18, 30, P.ruby);
+  ring(b, 80, 16, 'round', 14, 14, P.royal);
+  const sats = [];
+  for (let k = 0; k < 6; k++) {
+    const [cx, cy] = polar(195, k * TAU / 6); sats.push([cx, cy]);
+    b.add('round', cx, cy, 30, 30, 0, P.cry, { force: true });
+    ring(b, 32, 8, 'marquise', 12, 30, k % 2 ? P.em : P.ruby, { cx, cy, start: k * TAU / 6 });
+    ring(b, 55, 14, 'round', 12, 12, P.cit, { cx, cy, start: k * TAU / 6 });
+  }
+  ring(b, 140, 6, 'teardrop', 26, 44, P.royal, { phase: 0.5, orient: 'in' });
+  ring(b, 262, 6, 'round', 26, 26, P.garnet, { phase: 0.5 });
+  const glass = (r, th) => {
+    const [x, y] = polar(r, th);
+    const ds = Math.min(...sats.map(([cx, cy]) => Math.hypot(x - cx, y - cy)));
+    if (ds < 84) return P.mid;
+    if (r > 304) return P.garnet;
+    return fold(th, 12) > 0.62 ? P.royal : P.mid;
+  };
+  fillRings(b, 96, 330, 17, glass, { limit: inDisc(330), sym: 6 });
+  ring(b, 350, 48, 'round', 14, 14, (i) => (i % 2 ? P.cit : P.ruby), { force: false, gap: 0.4 });
+  return { b, palette: ['ruby', 'royal', 'citrine', 'emerald', 'midnight', 'crystal', 'garnet'], plate: { type: 'circle', r: 370 } };
+}
+
+function kaleidoscope() {
+  const b = new Builder();
+  const P = { mid: 0, sap: 1, aqua: 2, lav: 3, am: 4, sil: 5, cry: 6 };
+  b.add('round', 0, 0, 64, 64, 0, P.cry, { force: true });
+  ring(b, 64, 16, 'marquise', 14, 40, P.am);
+  ring(b, 58, 16, 'round', 10, 10, P.aqua, { phase: 0.5 });
+  const chev = (r, th) => {
+    const band = r / 40 + fold(th, 16) * 2.2;
+    if (band % 1 < 0.14) return P.cry;
+    return [P.mid, P.sap, P.aqua, P.lav, P.am, P.sil][Math.floor(band) % 6];
+  };
+  fillRings(b, 92, 470, 21, chev, { limit: inDisc(470), sym: 16 });
+  ring(b, 492, 64, 'teardrop', 16, 28, (i) => (i % 2 ? P.am : P.sap), { force: false, gap: 0.4 });
+  return { b, palette: ['midnight', 'sapphire', 'aqua', 'lavender', 'amethyst', 'silver', 'crystal'], plate: { type: 'circle', r: 512 } };
+}
+
 export const CATALOG = [
   { id: 'frost-rosette', version: 1, name: 'Frost Rosette', category: 'mandala', difficulty: 'Beginner', build: frostRosette },
   { id: 'ruby-teardrop', version: 1, name: 'Ruby Teardrop', category: 'mandala', difficulty: 'Medium', build: rubyTeardrop },
   { id: 'emerald-mosaic', version: 1, name: 'Emerald Mosaic', category: 'geometric', difficulty: 'Medium', build: emeraldMosaic },
   { id: 'sapphire-interlace', version: 1, name: 'Sapphire Interlace', category: 'geometric', difficulty: 'Intricate', build: sapphireInterlace },
-  { id: 'amethyst-star', version: 1, name: 'Amethyst Star', category: 'mandala', difficulty: 'Intricate', build: amethystStar },
+  { id: 'amethyst-star', version: 1, name: 'Amethyst Star', category: 'mandala', difficulty: 'Expert', build: amethystStar },
   { id: 'amber-sunburst', version: 1, name: 'Amber Sunburst', category: 'mandala', difficulty: 'Expert', build: amberSunburst },
+  { id: 'lotus-wheel', version: 1, name: 'Lotus Wheel', category: 'mandala', difficulty: 'Beginner', build: lotusWheel },
+  { id: 'snowflake', version: 1, name: 'Aurora Snowflake', category: 'geometric', difficulty: 'Beginner', build: snowflake },
+  { id: 'compass-rose', version: 1, name: 'Compass Rose', category: 'mandala', difficulty: 'Beginner', build: compassRose },
+  { id: 'moroccan-tile', version: 1, name: 'Zellige Tiles', category: 'geometric', difficulty: 'Medium', build: moroccanTile },
+  { id: 'argyle', version: 1, name: 'Rose Argyle', category: 'geometric', difficulty: 'Medium', build: argyle },
+  { id: 'hexagram', version: 1, name: 'Porcelain Star', category: 'geometric', difficulty: 'Medium', build: hexagram },
+  { id: 'tumbling-blocks', version: 1, name: 'Tumbling Blocks', category: 'geometric', difficulty: 'Medium', build: tumblingBlocks },
+  { id: 'sea-glass', version: 1, name: 'Sea Glass Spiral', category: 'mandala', difficulty: 'Intricate', build: seaGlass },
+  { id: 'vortex', version: 1, name: 'Aurora Vortex', category: 'mandala', difficulty: 'Intricate', build: vortex },
+  { id: 'rose-window', version: 1, name: 'Rose Window', category: 'mandala', difficulty: 'Intricate', build: roseWindow },
+  { id: 'kaleidoscope', version: 1, name: 'Midnight Kaleidoscope', category: 'mandala', difficulty: 'Expert', build: kaleidoscope },
 ];
+const LEVEL = { Beginner: 0, Medium: 1, Intricate: 2, Expert: 3 };
+CATALOG.sort((a, c) => LEVEL[a.difficulty] - LEVEL[c.difficulty]);
 
 const cache = new Map();
 export function getArtwork(id) {
@@ -321,8 +570,12 @@ export function getArtwork(id) {
   for (const s of sockets) R = Math.max(R, Math.hypot(s.x, s.y) + Math.max(s.w, s.h) / 2);
   if (plate.type === 'circle') R = Math.max(R, plate.r);
   else for (const [x, y] of plate.pts) R = Math.max(R, Math.hypot(x, y));
+  let hx = 0, hy = 0;
+  for (const s of sockets) { const e = Math.max(s.w, s.h) / 2; hx = Math.max(hx, Math.abs(s.x) + e); hy = Math.max(hy, Math.abs(s.y) + e); }
+  if (plate.type === 'circle') { hx = Math.max(hx, plate.r); hy = Math.max(hy, plate.r); }
+  else for (const [x, y] of plate.pts) { hx = Math.max(hx, Math.abs(x)); hy = Math.max(hy, Math.abs(y)); }
   let minDim = Infinity; for (const s of sockets) minDim = Math.min(minDim, Math.min(s.w, s.h));
-  const art = { ...meta, sockets, palette: pal, plate, R, minDim };
+  const art = { ...meta, sockets, palette: pal, plate, R, hx, hy, minDim };
   cache.set(id, art);
   return art;
 }

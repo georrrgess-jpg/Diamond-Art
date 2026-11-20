@@ -165,7 +165,7 @@ const board = new Board($('#cv'), {
     const c = S.cur;
     for (const i of ids) if (c.filled[i]) { c.filled[i] = 0; c.remaining[c.art.sockets[i].p]++; c.placed--; board.anims.delete(i); }
     c.dirty = true; scheduleSave();
-    refreshPalette(); updateProgress(); board.render();
+    refreshPalette(); updateProgress(); board.invalidate();
   },
   onCamera(cam) { if (S.cur) { S.cur.camera = cam; S.cur.dirty = true; scheduleSave(); } },
 });
@@ -254,7 +254,7 @@ function leave() {
   closeMenu(); closeModal();
   board.unload();
   S.cur = null;
-  document.title = 'Lustra — Gem Mosaics';
+  document.title = 'Lustra Gem Mosaics';
   show('gallery');
   renderGallery();
 }
@@ -285,7 +285,7 @@ function completionPanel(revisit) {
     <p>${c.art.sockets.length} gems placed. ${revisit ? 'It lives in your completed collection.' : 'Added to your completed collection.'}</p>
     <div class="actions">
       <button class="btn" data-a="admire">Admire</button>
-      <button class="btn" data-a="export">Save PNG</button>
+      <button class="btn" data-a="export">Save image</button>
       <button class="btn" data-a="gallery">Gallery</button>
       ${next ? `<button class="btn primary" data-a="next">Next: ${next.name}</button>` : ''}
     </div>`, {
@@ -296,15 +296,18 @@ function completionPanel(revisit) {
 
 function doExport() {
   const c = S.cur; if (!c) return;
-  const cv = exportPNG(c.art, c.filled, 2400);
+  const cv = exportPNG(c.art, c.filled, 2000);
   cv.toBlob((blob) => {
-    if (!blob) { toast('Could not create image'); return; }
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `lustra-${c.art.id}.png`;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    toast('Image saved');
+    if (!blob) { toast('Could not create the image'); return; }
+    const url = URL.createObjectURL(blob);
+    const back = c.completed ? () => completionPanel(true) : closeModal;
+    openModal(`
+      <h3 id="modal-title">${c.art.name}</h3>
+      <img class="export-img" src="${url}" alt="${c.art.name}, rendered at 2000 by 2000 pixels">
+      <p>Press and hold the image (or right-click it) and choose Save Image.</p>
+      <div class="actions"><button class="btn primary" data-a="done">Done</button></div>`, {
+      done: () => { URL.revokeObjectURL(url); back(); },
+    });
   }, 'image/png');
 }
 
@@ -403,7 +406,10 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('keyup', (e) => { if (e.code === 'Space') board.space = false; });
 window.addEventListener('blur', () => { board.space = false; });
-document.addEventListener('pointerdown', () => sfx.unlock(), { capture: true });
+['pointerdown', 'touchend'].forEach((t) => document.addEventListener(t, () => sfx.unlock(), { capture: true, passive: true }));
+// iOS Safari ignores user-scalable=no; stop page pinch-zoom outside the canvas
+['gesturestart', 'gesturechange'].forEach((t) => document.addEventListener(t, (e) => e.preventDefault()));
+document.addEventListener('dblclick', (e) => { if (e.target.closest('#play')) e.preventDefault(); });
 sysReduced.addEventListener && sysReduced.addEventListener('change', applyMotion);
 
 // ---------------------------------------------------------------- boot

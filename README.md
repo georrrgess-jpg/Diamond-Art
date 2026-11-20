@@ -4,13 +4,15 @@ A calm gem-by-number game for the browser. Choose a geometric mandala, pick a nu
 
 ## Run
 
-There's no build step and there are no dependencies. Serve the folder over HTTP (ES modules don't load from `file://`):
+There are no dependencies. For development, serve the folder over HTTP (ES modules don't load from `file://`):
 
 ```bash
 python3 -m http.server 8000
 ```
 
 Then open http://localhost:8000.
+
+To build the single-file version (used for the published artifact), run `python3 build.py`. It writes `dist/lustra.html` with all CSS and JS inlined.
 
 ## Controls
 
@@ -27,8 +29,8 @@ Then open http://localhost:8000.
 ## Architecture (`js/`)
 
 - `gems.js`: gem and socket rendering. There are 7 shapes (round, oval, teardrop, marquise, square, rhombus, hexagon). Round, oval, teardrop, marquise and rhombus use a brilliant-cut facet layout; square and hexagon use a step cut. Lighting is computed in world space, so every gem shares one light direction. An LRU sprite cache keys each sprite by shape, aspect, size bucket, rotation bucket, colour and variant, and is capped by total pixel count.
-- `artworks.js`: deterministic generators (`ring`, `fillRings` with symmetric row counts, hex lattice, a collision grid built from circle approximations) and the catalog of 6 artworks. Socket id = generation index; each artwork has a `version`.
-- `board.js`: camera, culling, rendering, hit testing (spatial grid plus a point-in-polygon test on the shape outline), pointer and gesture state machine, placement animations, sparkles, hint, completion shimmer, thumbnail and PNG export.
+- `artworks.js`: deterministic generators (`ring`, `fillRings` with symmetric row counts, hex lattice, a collision grid built from circle approximations) and the catalog of 17 artworks (4 Beginner, 6 Medium, 4 Intricate, 3 Expert), including phyllotaxis spirals, tumbling-block rhombi, tile lattices and a hexagram lattice. Socket id = generation index; each artwork has a `version`.
+- `board.js`: camera, culling, rendering. The board is drawn once into an offscreen layer (viewport plus a 25% margin); panning, pinching and zooming only redraw that layer as a single image, and it is rebuilt sharp once the camera settles. Placed gems animate on top of the layer and are then drawn into it. When the zoom level changes, the nearest cached gem size is reused immediately and sharp sprites are generated in small batches during idle frames. The board also handles hit testing (spatial grid plus a point-in-polygon test on the shape outline), pointer and gesture state machine, placement animations, sparkles, hint, completion shimmer, thumbnail and PNG export.
 - `app.js`: gallery (filters, favorites, continue card), palette, progress, settings, completion panel, autosave.
 - `store.js`: IndexedDB key-value store (falls back to localStorage). Progress records are versioned and validated on load.
 - `audio.js`: quiet synthesized WebAudio sounds, started on the first user gesture.
@@ -36,5 +38,5 @@ Then open http://localhost:8000.
 ## Deferred / not yet built
 
 - Free Color mode (recolouring, undo, separate progress). `store.progressKey(id, mode)` already supports a separate mode key.
-- More artworks: there are 6 now; the target collection is 24.
+- More artworks: there are 17 now; the target collection is 24.
 - No nonvisual (screen reader) way to play on the canvas. Menus and controls are keyboard and screen-reader labelled.
