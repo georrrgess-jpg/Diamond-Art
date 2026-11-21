@@ -216,6 +216,13 @@ function shippoLattice() {
     const x = (i + 0.5) * d, y = (j + 0.5) * d;
     if (lim(x, y, 7)) b.add('round', x, y, 14, 14, 0, P.gold, { force: true });
   }
+  // lenses
+  const lensCol = (m) => [P.fu, P.rose, P.violet, P.plum][Math.min(3, m)];
+  for (let i = -K; i <= K; i++) for (let j = -K; j <= K; j++) for (const [di, dj] of [[1, 0], [0, 1]]) {
+    const x = (i + di / 2) * d, y = (j + dj / 2) * d;
+    const m = lensM(i + di / 2, j + dj / 2);
+    b.add('marquise', x, y, 22, 58, di ? 0 : PI / 2, lensCol(m), { limit: lim, force: true });
+  }
   // circle strings
   for (let i = -K; i <= K; i++) for (let j = -K; j <= K; j++) {
     const n = 36;
@@ -223,13 +230,6 @@ function shippoLattice() {
       const th = ((k + 0.5) / n) * TAU, [px, py] = polar(r, th);
       b.add('round', i * d + px, j * d + py, 9, 9, 0, P.cream, { gap: 0.5, limit: lim });
     }
-  }
-  // lenses
-  const lensCol = (m) => [P.fu, P.rose, P.violet, P.plum][Math.min(3, m)];
-  for (let i = -K; i <= K; i++) for (let j = -K; j <= K; j++) for (const [di, dj] of [[1, 0], [0, 1]]) {
-    const x = (i + di / 2) * d, y = (j + dj / 2) * d;
-    const m = lensM(i + di / 2, j + dj / 2);
-    b.add('marquise', x, y, 17, 50, di ? 0 : PI / 2, lensCol(m), { limit: lim, gap: 0.3 });
   }
   // cushions
   for (let i = -K; i <= K; i++) for (let j = -K; j <= K; j++) {
@@ -242,6 +242,8 @@ function shippoLattice() {
     for (let k = 0; k < 4; k++) {
       const th = PI / 4 + (k * PI) / 2, [px, py] = polar(19, th);
       b.add('round', x + px, y + py, 8, 8, 0, m === 0 ? P.cream : P.gold, { gap: 0.2, limit: lim });
+      const [qx, qy] = polar(15.5, th - PI / 4);
+      b.add('round', x + qx, y + qy, 8.5, 8.5, 0, m === 0 ? P.fu : P.plum, { gap: 0.2, limit: lim });
     }
   }
   // glaze the remaining lens and cushion area
@@ -254,12 +256,13 @@ function shippoLattice() {
       return [P.rose, P.fu, P.plum, P.violet][Math.min(3, m)];
     }
     const m = rk(i, j);
-    return m === 0 ? P.lav : m === 1 ? P.violet : m === 2 ? P.mid : P.violet;
+    return m === 0 ? P.violet : m === 1 ? P.plum : m === 2 ? P.mid : P.plum;
   };
-  fillGaps(b, half, 8.5, 9, region, lim);
-  frame(b, square(half + 12), 20, 'square', 14, 14, (e, k) => (k % 2 ? P.gold : P.plum), { force: false });
-  frame(b, square(half + 32), 20, 'square', 14, 14, (e, k) => (k % 2 ? P.lav : P.mid), { force: false });
-  return { b, palette: ['plum', 'violet', 'lavender', 'cream', 'gold', 'rose', 'fuchsia', 'midnight'], plate: { type: 'poly', pts: square(half + 52) } };
+  hexFill(b, half, half, 10, 8.8, region, { limit: lim });
+  fillGaps(b, half, 8.2, 4.5, region, lim, 'round', 4);
+  rectBand(b, half + 11, half + 11, 14, 12, (k, c) => (c ? P.gold : k % 2 ? P.plum : P.fu), 'square', PI / 4);
+  rectBand(b, half + 26, half + 26, 13, 12, (k, c) => (c ? P.gold : P.mid));
+  return { b, palette: ['plum', 'violet', 'lavender', 'cream', 'gold', 'rose', 'fuchsia', 'midnight'], plate: { type: 'poly', pts: square(half + 40) } };
 }
 
 // Snub hexagonal tiling (3.3.3.3.6): hexagons spun in a pinwheel of triangles.
@@ -841,7 +844,7 @@ function leadedQuarry() {
   const b = new Builder();
   const P = { slate: 0, pearl: 1, ice: 2, ruby: 3, sap: 4, gold: 5, em: 6, amber: 7 };
   const hx = 230, hy = 320, bw = 44, ix = hx - bw, iy = hy - bw, inner = rect(ix, iy), lim = inPoly(inner, 0);
-  const ax = 50, ay = 72; // quarry diagonals
+  const ax = 76, ay = 108; // quarry diagonals
   // leads: two families of diagonal lines through the inner field
   const leads = [];
   for (let k = -12; k <= 12; k++) {
@@ -860,8 +863,7 @@ function leadedQuarry() {
     if (d === 0) return P.gold;
     if (d === 1) return P.ruby;
     if (d === 2) return Math.abs(p) === Math.abs(q) ? P.amber : P.sap;
-    if (d === 3) return P.em;
-    if (d === 4) return Math.abs(p) === Math.abs(q) ? P.ruby : P.ice;
+    if (d === 3) return Math.abs(p) === 3 || Math.abs(q) === 3 ? P.em : P.ice;
     if (p === 0 || q === 0) return P.ice;
     return P.pearl;
   };
@@ -896,6 +898,7 @@ function leadedQuarry() {
     const corner = Math.abs(x) > hx - bw && Math.abs(y) > hy - bw;
     return corner ? P.em : paneCol[mod(k, 4)];
   };
+  for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) b.add('round', sx * (hx - bw / 2), sy * (hy - bw / 2), 18, 18, 0, P.gold, { force: true });
   for (let k = 0; k < nP; k++) {
     const [x0, y0] = along(((k + 0.5) * per) / nP);
     const m = Math.hypot(x0, y0); const dx = -x0 / m, dy = -y0 / m;
@@ -903,7 +906,6 @@ function leadedQuarry() {
     seg(b, [x0, y0], [x0 + ox * bw, y0 + oy * bw], 10.5, 'round', 9, 9, P.slate, { force: false, gap: 0.1 });
     void dx; void dy;
   }
-  for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) b.add('round', sx * (hx - bw / 2), sy * (hy - bw / 2), 18, 18, 0, P.gold, { force: true });
   const outer = inPoly(rect(hx, hy), 0);
   hexFill(b, hx, hy, 10.4, 9.2, bandCol, { limit: outer });
   fillGaps(b, hy, 8.4, 5.2, bandCol, outer, 'round', 2);
