@@ -708,6 +708,39 @@ function chaosIcon() {
   return { b, palette: ['midnight', 'plum', 'violet', 'fuchsia', 'rose', 'blush', 'gold', 'cream'], plate: { type: 'circle', r: R + 30 } };
 }
 
+// Loxodromic double spiral: a log-polar checkerboard pulled through a Moebius map, so its
+// spiral cells stream out of one pole and wind into the other; warm cells belong to the left
+// pole, cool cells to the right.
+function loxodrome() {
+  const b = new Builder();
+  const P = { mid: 0, ind: 1, cob: 2, sky: 3, ice: 4, gold: 5, coral: 6, cream: 7 };
+  const R = 330, a = 150, m = 8, pole = 34;
+  hexPack(b, 12.3, 28, 11.2, (x, y) => {
+    const rr = Math.hypot(x, y);
+    if (rr > R - 6) return null;
+    if (Math.hypot(x - a, y) < pole + 6 || Math.hypot(x + a, y) < pole + 6) return null;
+    if (rr > R - 18) return P.ind;
+    // M(w) = (w - a) / (w + a)
+    const nx = x - a, dx = x + a, den = dx * dx + y * y;
+    const mx = (nx * dx + y * y) / den, my = (y * dx - nx * y) / den;
+    const lr = Math.log(Math.hypot(mx, my)), ph = Math.atan2(my, mx);
+    const u = (m * (ph + lr)) / TAU, v = (m * (ph - lr)) / TAU;
+    const fu = Math.floor(u), fv = Math.floor(v);
+    if ((fu + fv) % 2 === 0) return (((fu % 2) + 2) % 2) ? P.mid : P.ind;
+    const k = Math.abs(lr);
+    if (lr < 0) return k > 1.9 ? P.cream : k > 0.9 ? P.gold : P.coral;
+    return k > 1.9 ? P.ice : k > 0.9 ? P.sky : P.cob;
+  });
+  for (const sx of [-1, 1]) {
+    const cx = sx * a, warm = sx > 0;
+    b.add('round', cx, 0, 30, 30, 0, warm ? P.gold : P.sky, { force: true });
+    ring(b, 26, 12, 'teardrop', 11, 17, warm ? P.coral : P.cob, { cx, cy: 0, orient: 'out' });
+    ring(b, 26, 12, 'round', 8, 8, P.cream, { cx, cy: 0, phase: 0.5, force: false, gap: 0.2 });
+  }
+  ring(b, R + 10, 112, 'round', 13, 13, (i) => (i % 2 ? P.gold : P.ind), { force: false, gap: 0.3 });
+  return { b, palette: ['midnight', 'indigo', 'cobalt', 'sky', 'ice', 'gold', 'coral', 'cream'], plate: { type: 'circle', r: R + 30 } };
+}
+
 // ---------------------------------------------------------------- register
 export const ENTRIES = [
   { id: 'fibonacci-panels', version: 1, name: 'Fibonacci Panels', category: 'geometric', difficulty: 'Expert', build: fibonacciPanels },
@@ -725,6 +758,7 @@ export const ENTRIES = [
   { id: 'torus-knot', version: 1, name: 'Torus Knot', category: 'mandala', difficulty: 'Master', build: torusKnot },
   { id: 'newton-basins', version: 1, name: 'Newton Basins', category: 'mandala', difficulty: 'Master', build: newtonBasins },
   { id: 'ford-circles', version: 1, name: 'Ford Circles', category: 'geometric', difficulty: 'Master', build: fordCircles },
+  { id: 'loxodrome', version: 1, name: 'Loxodrome', category: 'geometric', difficulty: 'Master', build: loxodrome },
   { id: 'chaos-icon', version: 1, name: 'Chaos Icon', category: 'mandala', difficulty: 'Master', build: chaosIcon },
 ];
 
