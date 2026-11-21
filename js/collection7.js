@@ -733,115 +733,182 @@ function meanderPavement() {
     if (kind === 0) {
       poly = regPoly(8, 62, PI / 8).map(([x, y]) => [cx + x, cy + y]);
       b.add('round', cx, cy, 22, 22, 0, P.gold, { force: true });
-      ring(b, 24, 8, 'marquise', 11, 26, P.terra, o);
+      ring(b, 27, 8, 'marquise', 11, 26, P.terra, o);
       ring(b, 22, 8, 'round', 8, 8, P.cream, { ...o, phase: 0.5 });
-      ring(b, 40, 16, 'round', 10, 10, (i) => (i % 2 ? P.gold : P.ochre), o);
     } else if (kind === 1) {
       poly = regPoly(4, 60, 0).map(([x, y]) => [cx + x, cy + y]);
       b.add('square', cx, cy, 22, 22, PI / 4, P.terra, { force: true });
-      ring(b, 22, 4, 'teardrop', 12, 20, P.gold, o);
+      ring(b, 24, 4, 'teardrop', 12, 20, P.gold, o);
       ring(b, 22, 4, 'round', 10, 10, P.slate, { ...o, phase: 0.5 });
-      ring(b, 36, 8, 'round', 10, 10, P.ochre, { ...o, phase: 0.5 });
     } else {
       const rot = I ? PI / 2 : 0;
       poly = regPoly(6, 60, rot).map(([x, y]) => [cx + x, cy + y]);
       b.add('hexagon', cx, cy, 24 * 0.866, 24, rot, P.slate, { force: true });
-      ring(b, 23, 6, 'teardrop', 12, 20, P.terra, { ...o, start: rot });
+      ring(b, 24, 6, 'teardrop', 12, 20, P.terra, { ...o, start: rot });
       ring(b, 22, 6, 'round', 9, 9, P.gold, { ...o, start: rot, phase: 0.5 });
-      ring(b, 38, 12, 'round', 10, 10, P.ochre, { ...o, start: rot, phase: 0.5 });
     }
     frame(b, poly, 11, 'round', 9, 9, P.choc, { force: false, gap: 0.2 });
-    const col = (x, y) => (Math.max(Math.abs(x - cx), Math.abs(y - cy)) > inner - 10 ? P.choc : winding(poly, x, y) ? (kind === 0 ? P.mid : kind === 1 ? P.slate : P.choc) : P.cream);
-    for (const st of [10.6, 5.3]) for (let x = cx - inner; x <= cx + inner; x += st) for (let y = cy - inner; y <= cy + inner; y += st) b.add('round', x, y, 9, 9, 0, col(x, y), { gap: 0.3, limit: lim });
+    const inner2 = poly.map(([x, y]) => [cx + (x - cx) * 0.62, cy + (y - cy) * 0.62]);
+    const col = (x, y) => (Math.max(Math.abs(x - cx), Math.abs(y - cy)) > inner - 10 ? P.choc : winding(inner2, x, y) ? (kind === 0 ? P.cream : P.sand) : winding(poly, x, y) ? (kind === 0 ? P.mid : kind === 1 ? P.slate : P.terra) : P.sand);
+    hexFill(b, inner, inner, 10.6, 9.2, col, { cx, cy, limit: lim });
+    for (let x = cx - inner; x <= cx + inner; x += 4) for (let y = cy - inner; y <= cy + inner; y += 4) b.add('round', x, y, 8.4, 8.4, 0, col(x, y), { gap: 0.3, limit: lim });
   }
   rectBand(b, half + 10, half + 10, 13, 12, (k, c) => (c ? P.gold : k % 2 ? P.terra : P.cream), 'square', PI / 4);
   return { b, palette: ['chocolate', 'sand', 'cream', 'copper', 'gold', 'slate', 'amber', 'midnight'], plate: { type: 'poly', pts: square(half + 26) } };
 }
 
-// Sashiko sampler: nine indigo blocks, each stitched with a different traditional geometric pattern.
-function sashikoSampler() {
+// Pythagorean pavement: large and small squares in a pinwheel stagger, glazed as a stepped medallion.
+function pythagoreanPavement() {
   const b = new Builder();
-  const P = { indigo: 0, mid: 1, pearl: 2, ruby: 3, sand: 4, sky: 5, cream: 6, gold: 7 };
-  const B = 170, gap = 22, step = B + gap, half = 1.5 * B + gap;
-  const stitchSeg = (A, Bp, lim, col) => {
-    const L = Math.hypot(Bp[0] - A[0], Bp[1] - A[1]), n = Math.max(1, Math.round(L / 17));
-    for (let k = 0; k < n; k++) {
-      const t = (k + 0.5) / n, x = A[0] + (Bp[0] - A[0]) * t, y = A[1] + (Bp[1] - A[1]) * t;
-      b.add('oval', x, y, 8, 12, dirRot(Bp[0] - A[0], Bp[1] - A[1]), col, { gap: 0.6, limit: lim });
-    }
-  };
-  const stitchArc = (cx, cy, r, t0, t1, lim, col, hide) => {
-    const n = Math.max(2, Math.round((r * (t1 - t0)) / 17));
-    for (let k = 0; k < n; k++) {
-      const t = t0 + ((k + 0.5) / n) * (t1 - t0), [px, py] = polar(r, t), x = cx + px, y = cy + py;
-      if (hide && hide(x, y)) continue;
-      b.add('oval', x, y, 8, 12, t + PI / 2, col, { gap: 0.6, limit: lim });
-    }
-  };
-  const lines = (cx, cy, ang, sp, lim, col, off = 0) => {
-    const [dx, dy] = [Math.cos(ang), Math.sin(ang)], [nx, ny] = [-dy, dx];
-    for (let k = -8; k <= 8; k++) {
-      const o = (k + off) * sp, px = cx + nx * o, py = cy + ny * o;
-      stitchSeg([px - dx * 160, py - dy * 160], [px + dx * 160, py + dy * 160], lim, col);
-    }
-  };
-  const pats = [
-    // hishi: diamond lattice
-    (cx, cy, lim, c) => { lines(cx, cy, PI / 3, 30, lim, c); lines(cx, cy, -PI / 3, 30, lim, c); },
-    // seigaiha arcs
-    (cx, cy, lim, c) => {
-      const R = 40, sc = [];
-      for (let r = -6; r <= 7; r++) for (let k = -3; k <= 3; k++) sc.push([cx + k * 2 * R + (mod(r, 2) ? R : 0), cy + (r * R) / 2, r]);
-      for (const [x, y, r] of sc) for (const rr of [14, 27, 40]) stitchArc(x, y, rr, 0, TAU, lim, c, (px, py) => sc.some(([ox, oy, or]) => or > r && Math.hypot(px - ox, py - oy) < R + 3));
-    },
-    // asanoha-like kagome: three line families offset
-    (cx, cy, lim, c) => { for (const a of [0, PI / 3, (2 * PI) / 3]) lines(cx, cy, a, 36, lim, c, 0.5); },
-    // shippo circles
-    (cx, cy, lim, c) => { const d = 56, r = d / Math.SQRT2; for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) stitchArc(cx + i * d, cy + j * d, r, 0, TAU, lim, c); },
-    // centre: kikko (tortoiseshell hexagons) with a ruby heart
-    (cx, cy, lim, c) => {
-      const a = 26;
-      for (let q = -5; q <= 5; q++) for (let r = -5; r <= 5; r++) {
-        const x = cx + SQ3 * a * (q + r / 2), y = cy + 1.5 * a * r;
-        const V = Array.from({ length: 6 }, (_, k) => [x + a * Math.cos(PI / 6 + (k * PI) / 3), y + a * Math.sin(PI / 6 + (k * PI) / 3)]);
-        for (let k = 0; k < 3; k++) stitchSeg(V[k], V[k + 1], lim, Math.max(Math.abs(q), Math.abs(r), Math.abs(q + r)) === 0 ? P.ruby : c);
-      }
-    },
-    // yabane: arrow feathers, columns of chevrons alternating direction
-    (cx, cy, lim, c) => { for (let k = -4; k <= 4; k++) for (let r = -5; r <= 5; r++) { const x = cx + k * 30, y = cy + r * 32, s2 = k % 2 ? 1 : -1; stitchSeg([x - 15, y - s2 * 12], [x, y + s2 * 4], lim, c); stitchSeg([x, y + s2 * 4], [x + 15, y - s2 * 12], lim, c); } },
-    // uroko: scales, a triangle grid
-    (cx, cy, lim, c) => { for (const a of [0, PI / 3, (2 * PI) / 3]) lines(cx, cy, a, 34, lim, c); },
-    // dan-tsunagi: running bond
-    (cx, cy, lim, c) => { for (let r = -4; r <= 4; r++) { const y = cy + r * 34; stitchSeg([cx - 160, y], [cx + 160, y], lim, c); for (let k = -4; k <= 4; k++) { const x = cx + k * 52 + (mod(r, 2) ? 26 : 0); stitchSeg([x, y], [x, y + 34], lim, c); } } },
-    // hitomezashi: offset dashes forming crosses
-    (cx, cy, lim, c) => {
-      const g = 22, bits = [0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0];
-      for (let i = -7; i <= 7; i++) for (let k = -7; k <= 7; k++) {
-        if (mod(k + bits[i + 7], 2) === 0) stitchSeg([cx + k * g, cy + i * g], [cx + (k + 1) * g, cy + i * g], lim, c);
-        if (mod(k + bits[mod(-i, 15)], 2) === 0) stitchSeg([cx + i * g, cy + k * g], [cx + i * g, cy + (k + 1) * g], lim, c);
-      }
-    },
-  ];
-  const order = [0, 5, 6, 3, 4, 2, 7, 1, 8];
-  let n = 0;
-  for (let J = -1; J <= 1; J++) for (let I = -1; I <= 1; I++) {
-    const cx = I * step, cy = J * step, box = square(B / 2).map(([x, y]) => [cx + x, cy + y]), lim = inPoly(box, 3);
-    const centre = I === 0 && J === 0, dark = (I + J) % 2 !== 0;
-    const sc = centre ? P.pearl : (I + J) % 2 ? P.sky : P.pearl;
-    pats[order[n++]](cx, cy, lim, centre ? P.pearl : sc);
-    hexFill(b, B / 2 - 3, B / 2 - 3, 10.4, 9, () => (dark ? P.mid : P.indigo), { cx, cy, limit: lim });
-    for (const st of [5.2, 3.5]) for (let x = cx - B / 2; x <= cx + B / 2; x += st) for (let y = cy - B / 2; y <= cy + B / 2; y += st) b.add('round', x, y, 8.4, 8.4, 0, dark ? P.mid : P.indigo, { gap: 0.3, limit: lim });
+  const P = { mid: 0, plum: 1, orchid: 2, lav: 3, cream: 4, gold: 5, teal: 6, mint: 7 };
+  const A = 96, Bs = 48, H = 300, box = square(H), lim = inPoly(box, 0);
+  const u = [A, Bs], v = [-Bs, A];
+  const big = [], small = [];
+  for (let m = -5; m <= 5; m++) for (let n = -5; n <= 5; n++) {
+    const ox = m * u[0] + n * v[0] - A / 2, oy = m * u[1] + n * v[1] - A / 2;
+    big.push({ x: ox + A / 2, y: oy + A / 2, z: Math.max(Math.abs(m), Math.abs(n)) });
+    small.push({ x: ox + A + Bs / 2, y: oy + Bs / 2 });
   }
-  // sashing strips and border
-  const inBlock = (x, y) => [-1, 0, 1].some((I) => [-1, 0, 1].some((J) => Math.abs(x - I * step) < B / 2 + 3 && Math.abs(y - J * step) < B / 2 + 3));
-  const sp = gap / 2;
-  for (let x = -half - sp; x <= half + sp + 0.1; x += sp) for (let y = -half - sp; y <= half + sp + 0.1; y += sp) {
-    if (inBlock(x, y)) continue;
-    const knot = [-1.5, -0.5, 0.5, 1.5].some((k) => Math.abs(x - k * step) < sp) && [-1.5, -0.5, 0.5, 1.5].some((k) => Math.abs(y - k * step) < sp);
-    const edge = Math.max(Math.abs(x), Math.abs(y)) > half + 1;
-    b.add('square', x, y, sp - 1.2, sp - 1.2, 0, knot ? P.ruby : edge ? P.mid : mod(Math.round((x + y) / sp), 2) ? P.sand : P.cream, { gap: 0.1 });
+  const fams = [[P.gold, P.cream, P.plum], [P.orchid, P.lav, P.plum], [P.teal, P.mint, P.mid], [P.plum, P.orchid, P.mid], [P.teal, P.mint, P.mid], [P.plum, P.orchid, P.mid]];
+  for (const t of big) {
+    if (Math.max(Math.abs(t.x), Math.abs(t.y)) > H + A / 2) continue;
+    const [body, light, dark] = fams[Math.min(5, t.z)], o = { cx: t.x, cy: t.y, force: false, gap: 0.3, limit: lim };
+    if (lim(t.x, t.y, 12)) b.add('square', t.x, t.y, 24, 24, PI / 4, light, { force: true });
+    ring(b, 24, 4, 'teardrop', 12, 20, light, { ...o, phase: 0.5 });
+    ring(b, 21, 4, 'round', 8, 8, P.gold, o);
+    t.col = (x, y) => { const d = Math.max(Math.abs(x - t.x), Math.abs(y - t.y)); return d > A / 2 - 8 ? dark : d < 26 ? dark : body; };
   }
-  return { b, palette: ['indigo', 'midnight', 'pearl', 'ruby', 'sand', 'sky', 'cream', 'gold'], plate: { type: 'poly', pts: square(half + sp + 18) } };
+  for (const t of small) if (lim(t.x, t.y, 6)) { b.add('round', t.x, t.y, 18, 18, 0, P.gold, { force: true }); }
+  const col = (x, y) => {
+    for (const t of small) if (Math.abs(x - t.x) < Bs / 2 && Math.abs(y - t.y) < Bs / 2) return Math.max(Math.abs(x - t.x), Math.abs(y - t.y)) > Bs / 2 - 8 ? P.mid : P.cream;
+    for (const t of big) if (Math.abs(x - t.x) < A / 2 && Math.abs(y - t.y) < A / 2) return t.col ? t.col(x, y) : P.mid;
+    return P.mid;
+  };
+  hexFill(b, H - 4, H - 4, 10.4, 9.2, col, { limit: lim });
+  fillGaps(b, H, 8.4, 5.2, col, lim, 'round', 2);
+  rectBand(b, H + 11, H + 11, 13, 12, (k, c) => (c ? P.gold : P.mid));
+  rectBand(b, H + 25, H + 25, 13, 12, (k, c) => (c ? P.gold : k % 2 ? P.orchid : P.teal), 'square', PI / 4);
+  rectBand(b, H + 39, H + 39, 13, 12, (k, c) => (c ? P.gold : P.mid));
+  return { b, palette: ['midnight', 'plum', 'orchid', 'lavender', 'cream', 'gold', 'teal', 'mint'], plate: { type: 'poly', pts: square(H + 54) } };
+}
+
+// Cubic space lattice: an isometric frame of beams receding in three directions, gold at the joints.
+function cubicLattice() {
+  const b = new Builder();
+  const P = { mid: 0, pearl: 1, sky: 2, royal: 3, cream: 4, gold: 5, copper: 6, onyx: 7 };
+  const u = 25.4, L = 6, S = 12, R = 318, plate = hexPlate(R).map(([x, y]) => [y, x]), lim = inPoly(plate, 0);
+  const c30 = Math.cos(PI / 6);
+  const solid = (i, j, k) => {
+    if (i < 0 || j < 0 || k < 0 || i > S || j > S || k > S) return false;
+    return (i % L === 0) + (j % L === 0) + (k % L === 0) >= 2;
+  };
+  const off = S / 2; // centre the cube on the origin
+  const cast = (X, Y) => {
+    // ray p0 + t(1,1,1) with p0 on z = 0; screen X = (x - y) c30 u, Y = ((x + y) / 2 - z) u
+    const xm = X / (c30 * u), xp = (2 * Y) / u;
+    let x = (xm + xp) / 2 + off, y = (xp - xm) / 2 + off, z = off;
+    // march from the viewer side (large t) toward small t
+    const T = 3 * S;
+    x += T; y += T; z += T;
+    let ix = Math.floor(x), iy = Math.floor(y), iz = Math.floor(z);
+    let tx = x - ix, ty = y - iy, tz = z - iz, face = 2;
+    for (let n = 0; n < 12 * S + 40; n++) {
+      if (solid(ix, iy, iz)) return { face, ix, iy, iz };
+      // next boundary going in -1 direction on each axis
+      if (tx <= ty && tx <= tz) { ty -= tx; tz -= tx; tx = 1; ix--; face = 0; }
+      else if (ty <= tz) { tx -= ty; tz -= ty; ty = 1; iy--; face = 1; }
+      else { tx -= tz; ty -= tz; tz = 1; iz--; face = 2; }
+      if (ix < -1 && iy < -1 && iz < -1) break;
+    }
+    return null;
+  };
+  const col = (X, Y) => {
+    const h = cast(X, Y);
+    if (!h) return P.onyx;
+    const node = h.ix % L === 0 && h.iy % L === 0 && h.iz % L === 0;
+    if (node) return [P.gold, P.copper, P.cream][h.face];
+    return [P.sky, P.royal, P.pearl][h.face];
+  };
+  hexFill(b, R, R, 10.2, 9.2, col, { limit: inPoly(plate, 2) });
+  fillGaps(b, R, 8.4, 5.1, col, inPoly(plate, 2), 'round', 2);
+  frame(b, hexPlate(R + 12).map(([x, y]) => [y, x]), 16, 'square', 13, 13, (e, k) => (k % 2 ? P.gold : P.mid), { force: false });
+  frame(b, hexPlate(R + 30).map(([x, y]) => [y, x]), 16, 'round', 13, 13, (e, k) => (k % 2 ? P.royal : P.copper), { force: false });
+  return { b, palette: ['midnight', 'pearl', 'sky', 'royal', 'cream', 'gold', 'copper', 'onyx'], plate: { type: 'poly', pts: hexPlate(R + 46).map(([x, y]) => [y, x]) } };
+}
+
+// Leaded window: diamond quarries in lead cames, a jewelled lozenge medallion and a border of coloured panes.
+function leadedQuarry() {
+  const b = new Builder();
+  const P = { slate: 0, pearl: 1, ice: 2, ruby: 3, sap: 4, gold: 5, em: 6, amber: 7 };
+  const hx = 230, hy = 320, bw = 44, ix = hx - bw, iy = hy - bw, inner = rect(ix, iy), lim = inPoly(inner, 0);
+  const ax = 46, ay = 64; // quarry half-diagonals
+  // leads: two families of diagonal lines through the inner field
+  const leads = [];
+  for (let k = -12; k <= 12; k++) {
+    for (const sg of [1, -1]) {
+      // x / ax + sg * y / ay = k  -> clip to the field
+      const pts = [];
+      for (const y of [-iy, iy]) pts.push([(k - (sg * y) / ay) * ax, y]);
+      leads.push(pts);
+    }
+  }
+  for (const [A, B] of leads) seg(b, A, B, 10.5, 'round', 9, 9, P.slate, { force: false, gap: 0.1, limit: lim });
+  const qid = (x, y) => [Math.floor(x / ax + y / ay + 0.5), Math.floor(x / ax - y / ay + 0.5)];
+  const glass = (x, y) => {
+    const [p, q] = qid(x, y), a = p + q, c = p - q; // a, c: quarry lattice coordinates (even/odd mix)
+    const d = Math.abs(p) + Math.abs(q);
+    if (d === 0) return P.gold;
+    if (d === 1) return P.ruby;
+    if (d === 2) return Math.abs(p) === Math.abs(q) ? P.amber : P.sap;
+    if (d === 3) return P.em;
+    if (Math.abs(p) === Math.abs(q) && d % 2 === 0) return P.ice;
+    return P.pearl;
+  };
+  // painted rosettes in the plain quarries
+  for (let p = -8; p <= 8; p++) for (let q = -8; q <= 8; q++) {
+    const x = ((p + q) * ax) / 2, y = ((p - q) * ay) / 2;
+    if (!lim(x, y, 16)) continue;
+    const g = glass(x, y);
+    b.add('round', x, y, 15, 15, 0, g === P.pearl || g === P.ice ? P.gold : g === P.gold ? P.ruby : P.pearl, { force: true });
+    if (g === P.pearl) ring(b, 13, 4, 'round', 8, 8, P.ice, { cx: x, cy: y, phase: 0.5, force: false, gap: 0.3 });
+  }
+  hexFill(b, ix, iy, 10.4, 9.2, glass, { limit: lim });
+  fillGaps(b, Math.max(ix, iy), 8.4, 5.2, glass, lim, 'round', 2);
+  // border of coloured panes in lead
+  frame(b, inner, 10.5, 'round', 9, 9, P.slate, { force: false, gap: 0.1 });
+  frame(b, rect(hx, hy), 10.5, 'round', 9, 9, P.slate, { force: false, gap: 0.1 });
+  const paneCol = [P.ruby, P.gold, P.sap, P.gold];
+  const per = 2 * (2 * hx + 2 * hy), nP = 28;
+  const along = (s2) => {
+    s2 = mod(s2, per);
+    if (s2 < 2 * hx) return [-hx + s2, -hy];
+    s2 -= 2 * hx; if (s2 < 2 * hy) return [hx, -hy + s2];
+    s2 -= 2 * hy; if (s2 < 2 * hx) return [hx - s2, hy];
+    s2 -= 2 * hx; return [-hx, hy - s2];
+  };
+  const bandCol = (x, y) => {
+    const m = Math.min(hx - Math.abs(x), hy - Math.abs(y));
+    if (m > bw - 2) return null;
+    let s2;
+    if (hy - Math.abs(y) < hx - Math.abs(x)) s2 = y < 0 ? x + hx : 2 * hx + 2 * hy + (hx - x);
+    else s2 = x > 0 ? 2 * hx + (y + hy) : 4 * hx + 2 * hy + (hy - y);
+    const k = Math.floor((s2 / per) * nP + 0.5);
+    const corner = Math.abs(x) > hx - bw && Math.abs(y) > hy - bw;
+    return corner ? P.em : paneCol[mod(k, 4)];
+  };
+  for (let k = 0; k < nP; k++) {
+    const [x0, y0] = along(((k + 0.5) * per) / nP);
+    const m = Math.hypot(x0, y0); const dx = -x0 / m, dy = -y0 / m;
+    const [ox, oy] = Math.abs(Math.abs(x0) - hx) < 1 ? [Math.sign(-x0), 0] : [0, Math.sign(-y0)];
+    seg(b, [x0, y0], [x0 + ox * bw, y0 + oy * bw], 10.5, 'round', 9, 9, P.slate, { force: false, gap: 0.1 });
+    void dx; void dy;
+  }
+  for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) b.add('round', sx * (hx - bw / 2), sy * (hy - bw / 2), 18, 18, 0, P.gold, { force: true });
+  const outer = inPoly(rect(hx, hy), 0);
+  hexFill(b, hx, hy, 10.4, 9.2, bandCol, { limit: outer });
+  fillGaps(b, hy, 8.4, 5.2, bandCol, outer, 'round', 2);
+  frame(b, rect(hx + 12, hy + 12), 14, 'square', 12, 12, (e, k) => (k % 2 ? P.gold : P.slate), { force: false });
+  return { b, palette: ['slate', 'pearl', 'ice', 'ruby', 'sapphire', 'gold', 'emerald', 'amber'], plate: { type: 'poly', pts: rect(hx + 28, hy + 28) } };
 }
 
 export const ENTRIES = [
@@ -857,7 +924,9 @@ export const ENTRIES = [
   { id: 'alhambra-strapwork', version: 1, name: 'Alhambra Strapwork', category: 'geometric', difficulty: 'Master', build: alhambraStrapwork },
   { id: 'cosmati-quincunx', version: 1, name: 'Cosmati Quincunx', category: 'geometric', difficulty: 'Master', build: cosmatiQuincunx },
   { id: 'meander-pavement', version: 1, name: 'Meander Pavement', category: 'geometric', difficulty: 'Master', build: meanderPavement },
-  { id: 'sashiko-sampler', version: 1, name: 'Sashiko Sampler', category: 'geometric', difficulty: 'Master', build: sashikoSampler },
+  { id: 'pythagorean-pavement', version: 1, name: 'Pythagorean Pavement', category: 'geometric', difficulty: 'Master', build: pythagoreanPavement },
+  { id: 'cubic-lattice', version: 1, name: 'Cubic Space Lattice', category: 'geometric', difficulty: 'Master', build: cubicLattice },
+  { id: 'leaded-quarry', version: 1, name: 'Leaded Quarry Window', category: 'geometric', difficulty: 'Master', build: leadedQuarry },
   { id: 'dodecagon-mosaic', version: 1, name: 'Dodecagon Mosaic', category: 'geometric', difficulty: 'Master', build: dodecagonMosaic },
 ];
 
