@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Artwork contact sheet</title>
+<style>
+  body { margin: 0; background: #f5f0e6; font: 12px system-ui; }
+  #g { display: grid; grid-template-columns: repeat(6, 210px); gap: 6px; padding: 6px; }
+  figure { margin: 0; background: #fff; border-radius: 10px; padding: 4px; }
+  canvas { width: 200px; height: 200px; display: block; }
+  figcaption { padding: 2px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style>
+<div id="g"></div>
+<script type="module">
+// Contact sheet: tools/sheet.html?c=collection3  (or c=all). Renders completed previews.
+import { CATALOG, getArtwork } from '../js/artworks.js';
+import '../js/collection2.js';
+import * as c3 from '../js/collection3.js';
+import * as c4 from '../js/collection4.js';
+import * as c5 from '../js/collection5.js';
+import { renderThumb } from '../js/board.js';
+const which = new URLSearchParams(location.search).get('c') || 'all';
+const list = which === 'all' ? CATALOG : { collection3: c3, collection4: c4, collection5: c5 }[which].ENTRIES;
+const g = document.getElementById('g');
+for (const m of list) {
+  const a = getArtwork(m.id);
+  const f = document.createElement('figure');
+  f.appendChild(renderThumb(a, 200));
+  f.insertAdjacentHTML('beforeend', `<figcaption><b>${m.name}</b> · ${m.difficulty} · ${a.sockets.length}</figcaption>`);
+  g.appendChild(f);
+}
+document.body.dataset.done = '1';
+</script>

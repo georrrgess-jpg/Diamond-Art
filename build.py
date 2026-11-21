@@ -8,7 +8,7 @@ import re, pathlib, subprocess
 
 ROOT = pathlib.Path(__file__).parent
 subprocess.run(['node', str(ROOT / 'tools' / 'gen-meta.mjs')], check=True)
-ORDER = ['gems', 'artworks', 'collection2', 'meta', 'store', 'audio', 'board', 'themes', 'app']
+ORDER = ['gems', 'artworks', 'collection2', 'collection3', 'collection4', 'collection5', 'meta', 'store', 'audio', 'board', 'themes', 'app']
 
 def bundle_module(name):
     src = (ROOT / 'js' / f'{name}.js').read_text()
@@ -17,7 +17,7 @@ def bundle_module(name):
         ns = f'__m_{mod}'
         if what.startswith('* as '):
             return f'const {what[5:].strip()} = {ns};'
-        return f'const {what} = {ns};'
+        return f'const {what.replace(" as ", ": ")} = {ns};'
     src = re.sub(r"^import\s+(.+?)\s+from\s+'\./(\w+)\.js';", imp, src, flags=re.M)
     names = re.findall(r'^export\s+(?:async\s+)?(?:function|class|const|let)\s+(\w+)', src, flags=re.M)
     src = re.sub(r'^export\s+', '', src, flags=re.M)

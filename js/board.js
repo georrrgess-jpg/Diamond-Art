@@ -79,7 +79,9 @@ export function drawArtwork(ctx, art, cam, W, H, dpr, o = {}) {
     const t = tonesFor(pal[sel]);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = rgbStr(t[3], 0.62);
-    ctx.strokeStyle = rgbStr(t[1], 0.95);
+    // light gems (crystal, pearl, cream…) get a darker outline so the highlight stays visible
+    const lum = (0.299 * t[2][0] + 0.587 * t[2][1] + 0.114 * t[2][2]) / 255;
+    ctx.strokeStyle = lum > 0.68 ? rgbStr(t[0], 0.9) : rgbStr(t[1], 0.95);
     for (const i of hl) {
       const g = S[i];
       const md = Math.min(g.w, g.h) * s;
@@ -260,6 +262,15 @@ export class Board {
       this.cam = { s, x: this.W / 2 - wx * s, y: this.H / 2 - wy * s };
       if (t >= 1) { this.camAnim = null; this._clamp(); this._camChanged(); } else again = true;
     }
+    if (this.fling) {
+      const f = this.fling, dt = Math.min(40, now - f.t); f.t = now;
+      this.cam.x += f.vx * dt; this.cam.y += f.vy * dt;
+      const decay = Math.exp(-dt / 240); f.vx *= decay; f.vy *= decay;
+      const bx = this.cam.x, by = this.cam.y; this._clamp();
+      if (bx !== this.cam.x) f.vx = 0; if (by !== this.cam.y) f.vy = 0;
+      this._lastCam = now;
+      if (Math.hypot(f.vx, f.vy) < 0.02) { this.fling = null; this._camChanged(); } else again = true;
+    }
     const ctx = this.ctx, dpr = this.dpr, cam = this.cam;
     // --- cached board layer: one blit per frame while the camera moves
     let L = this.layer;
@@ -363,8 +374,51 @@ export class Board {
       ctx.restore();
       again = true;
     }
+    this._drawArrow(ctx, now);
     if (this.h.onFrame) this.h.onFrame();
     if (again) this.render();
+  }
+
+  // Guide arrow at the screen edge pointing to the nearest unplaced socket of the
+  // selected number when none is visible (only while zoomed in).
+  _drawArrow(ctx, now) {
+    this.arrow = null;
+    if (!this.art || this.sel == null || this.zoomRatio < 1.25 || this.hint) return;
+    const c = this.cam, key = `${c.s.toFixed(4)}|${c.x.toFixed(1)}|${c.y.toFixed(1)}|${this.sel}|${this.placedCount || 0}`;
+    if (this._arrowKey !== key) {
+      this._arrowKey = key;
+      const S = this.art.sockets, cx = (this.W / 2 - c.x) / c.s, cy = (this.H / 2 - c.y) / c.s;
+      let best = -1, bd = Infinity, vis = false;
+      const x0 = -c.x / c.s, y0 = -c.y / c.s, x1 = (this.W - c.x) / c.s, y1 = (this.H - c.y) / c.s;
+      for (let i = 0; i < S.length; i++) {
+        const g = S[i]; if (g.p !== this.sel || this.filled[i]) continue;
+        if (g.x > x0 && g.x < x1 && g.y > y0 && g.y < y1) { vis = true; break; }
+        const d = (g.x - cx) ** 2 + (g.y - cy) ** 2; if (d < bd) { bd = d; best = i; }
+      }
+      this._arrowTarget = vis ? -1 : best;
+    }
+    const i = this._arrowTarget; if (i < 0) return;
+    const g = this.art.sockets[i], tx = c.x + g.x * c.s, ty = c.y + g.y * c.s;
+    const mx = this.W / 2, my = this.H / 2, dx = tx - mx, dy = ty - my;
+    const pad = 34, kx = (this.W / 2 - pad) / Math.abs(dx || 1e-6), ky = (this.H / 2 - pad) / Math.abs(dy || 1e-6), k = Math.min(kx, ky);
+    const ax = mx + dx * k, ay = my + dy * k, ang = Math.atan2(dy, dx);
+    const pulse = this.reduced ? 0 : Math.sin(now / 260) * 2;
+    ctx.save(); ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.translate(ax, ay);
+    ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 2;
+    ctx.fillStyle = `rgb(${THEME.hint})`;
+    ctx.beginPath(); ctx.arc(0, 0, 19 + pulse * 0.5, 0, TAU); ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.rotate(ang); ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(-4, -8); ctx.lineTo(-1, 0); ctx.lineTo(-4, 8); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    this.arrow = { x: ax, y: ay, i };
+    if (!this.reduced) this.render();
+  }
+  goToSocket(i) {
+    const g = this.art.sockets[i], s = Math.max(this.cam.s, Math.min(this.maxScale, 30 / Math.min(g.w, g.h)));
+    this.animateTo({ s, x: this.W / 2 - g.x * s, y: this.H / 2 - g.y * s });
+    this.hint = { i, t: performance.now() };
   }
   centerOn(wx, wy, animate = false) {
     const s = this.cam.s;
@@ -519,8 +573,12 @@ export class Board {
   _pos(e) { const r = this.cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
   _down(e) {
     if (!this.art) return;
-    this.camAnim = null;
+    this.camAnim = null; this.fling = null;
     const [x, y] = this._pos(e);
+    if (this.arrow && this.pointers.size === 0 && Math.hypot(x - this.arrow.x, y - this.arrow.y) < 26) {
+      this.goToSocket(this.arrow.i); this.arrow = null; this.render(); return;
+    }
+    this._vel = { vx: 0, vy: 0, t: performance.now() };
     try { this.cv.setPointerCapture(e.pointerId); } catch {}
     this.pointers.set(e.pointerId, { x, y });
     if (this.pointers.size >= 2) {
@@ -539,10 +597,37 @@ export class Board {
     if (e.pointerType === 'mouse' || e.pointerType === 'pen') {
       this.gesture = { type: 'paint', x, y, t0: performance.now() };
       this.stroke = [];
-      this.tryPlace(this.hitTest(...this.toWorld(x, y)), true) || this._tapAssist(x, y, true);
+      this._tap(x, y);
     } else {
-      this.gesture = { type: 'pending', x, y, sx: x, sy: y, t0: performance.now() };
+      const g = (this.gesture = { type: 'pending', x, y, sx: x, sy: y, t0: performance.now() });
+      // long-press an empty socket to pick up its gem number
+      clearTimeout(this._lpT);
+      this._lpT = setTimeout(() => {
+        if (this.gesture !== g) return;
+        const i = this.hitTest(...this.toWorld(g.sx, g.sy));
+        if (i >= 0 && !this.filled[i] && this.h.onPick) { this.gesture = { type: 'idle' }; this.h.onPick(this.art.sockets[i].p, i); }
+      }, 450);
     }
+  }
+  // A tap places a gem; two taps on nothing (or on placed gems) in quick
+  // succession zoom in around that point.
+  _tap(x, y) {
+    const placed = this.tryPlace(this.hitTest(...this.toWorld(x, y)), true) || this._tapAssist(x, y, true);
+    const now = performance.now(), L = this._lastTap;
+    if (!placed && L && !L.placed && now - L.t < 340 && Math.hypot(x - L.x, y - L.y) < 36) {
+      const atMax = this.cam.s >= this.maxScale * 0.98;
+      if (atMax) this.fit(true);
+      else { const s = Math.min(this.maxScale, this.cam.s * 2.2); this.animateTo({ s, x: x - ((x - this.cam.x) / this.cam.s) * s, y: y - ((y - this.cam.y) / this.cam.s) * s }); }
+      this._lastTap = null;
+      return placed;
+    }
+    this._lastTap = { x, y, t: now, placed };
+    return placed;
+  }
+  _track(dx, dy) {
+    const v = this._vel, now = performance.now(), dt = Math.max(1, now - v.t);
+    const a = Math.min(1, dt / 50);
+    v.vx = v.vx * (1 - a) + (dx / dt) * a; v.vy = v.vy * (1 - a) + (dy / dt) * a; v.t = now;
   }
   _tapAssist(x, y, isTap) {
     // forgiving taps: probe a few px around the touch point when it lands in a gap
@@ -576,10 +661,11 @@ export class Board {
       const [a, b] = [...this.pointers.values()];
       const d = Math.hypot(a.x - b.x, a.y - b.y), cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
       this.cam.x += cx - g.cx; this.cam.y += cy - g.cy;
+      this._track(cx - g.cx, cy - g.cy);
       this.zoomAt(cx, cy, d / (g.d || d));
       g.d = d; g.cx = cx; g.cy = cy;
     } else if (g.type === 'pan') {
-      this.cam.x += x - g.x; this.cam.y += y - g.y; g.x = x; g.y = y;
+      this.cam.x += x - g.x; this.cam.y += y - g.y; this._track(x - g.x, y - g.y); g.x = x; g.y = y;
       this._clamp(); this._camChanged();
     } else if (g.type === 'pending') {
       if (Math.hypot(x - g.sx, y - g.sy) > 7) {
@@ -598,7 +684,14 @@ export class Board {
     this.pointers.delete(e.pointerId);
     const g = this.gesture;
     if (g && g.type === 'pending' && !cancel) {
-      this.tryPlace(this.hitTest(...this.toWorld(p.x, p.y)), true) || this._tapAssist(p.x, p.y, true);
+      this.stroke = [];
+      this._tap(p.x, p.y);
+    }
+    // flick momentum after panning (one or two fingers)
+    if (!cancel && g && (g.type === 'pan' || g.type === 'pinch') && this._vel && !this.reduced) {
+      const v = this._vel, idle = performance.now() - v.t;
+      if (idle < 60 && Math.hypot(v.vx, v.vy) > 0.25) { this.fling = { vx: v.vx, vy: v.vy, t: performance.now() }; this.render(); }
+      this._vel = null;
     }
     if (this.pointers.size === 0) {
       if (this.stroke && this.stroke.length && this.h.onStrokeEnd) this.h.onStrokeEnd(this.stroke);

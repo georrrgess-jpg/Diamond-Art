@@ -882,6 +882,22 @@ const GEMS = {
   jade: { name: 'Jade', hex: '#4fae7a' },
   sky: { name: 'Sky', hex: '#5fa8ee' },
   sunset: { name: 'Sunset', hex: '#f08a3c' },
+  tangerine: { name: 'Tangerine', hex: '#f7882f' },
+  lemon: { name: 'Lemon', hex: '#f1dc4a' },
+  olive: { name: 'Olive', hex: '#8a9a3b' },
+  cobalt: { name: 'Cobalt', hex: '#2346c8' },
+  periwinkle: { name: 'Periwinkle', hex: '#8f9cf2' },
+  mauve: { name: 'Mauve', hex: '#b07aa1' },
+  burgundy: { name: 'Burgundy', hex: '#7a1530' },
+  chocolate: { name: 'Chocolate', hex: '#6b3f24' },
+  slate: { name: 'Slate', hex: '#5d6b7e' },
+  topaz: { name: 'Topaz', hex: '#f2a93b' },
+  morganite: { name: 'Morganite', hex: '#f1b5a8' },
+  tanzanite: { name: 'Tanzanite', hex: '#4b3fb5' },
+  peridot: { name: 'Peridot', hex: '#a9cf3e' },
+  scarlet: { name: 'Scarlet', hex: '#e0262f' },
+  opal: { name: 'Opal', hex: '#e6eef4', tones: ['#6e7f99', '#a9b9d4', '#dbe6f2', '#f6f0fa', '#ffffff'] },
+  onyx: { name: 'Onyx', hex: '#2a2830', tones: ['#0b0a0e', '#1b1a20', '#34323c', '#6d6a7a', '#c9c6d6'] },
 };
 
 // ---------------------------------------------------------------- builder
@@ -1908,7 +1924,58 @@ CATALOG.sort((a, c) => LEVEL[a.difficulty] - LEVEL[c.difficulty]);
 
 const COLLECTION_SIZE = CATALOG.length;
 
-return { COLLECTION_SIZE };
+return { rng, alongCurve, alongPoly, hexPack, orbitPack, pascalMod, hexPlate, COLLECTION_SIZE };
+})();
+
+const __m_collection3 = (() => {
+// Collection 3: radial mandalas
+// Authored artworks registered into the shared catalog. Deterministic only.
+const { Builder, ring, fillRings, fold, inDisc, polar, GEMS, CATALOG, LEVEL, SQ3, square } = __m_artworks;
+const { rng, alongCurve, alongPoly, hexPack, orbitPack, pascalMod, hexPlate } = __m_collection2;
+
+const TAU = Math.PI * 2;
+
+const ENTRIES = [
+];
+
+CATALOG.push(...ENTRIES);
+CATALOG.sort((a, c) => LEVEL[a.difficulty] - LEVEL[c.difficulty]);
+
+return { ENTRIES };
+})();
+
+const __m_collection4 = (() => {
+// Collection 4: lattices, tilings and polygons
+// Authored artworks registered into the shared catalog. Deterministic only.
+const { Builder, ring, fillRings, fold, inDisc, polar, GEMS, CATALOG, LEVEL, SQ3, square } = __m_artworks;
+const { rng, alongCurve, alongPoly, hexPack, orbitPack, pascalMod, hexPlate } = __m_collection2;
+
+const TAU = Math.PI * 2;
+
+const ENTRIES = [
+];
+
+CATALOG.push(...ENTRIES);
+CATALOG.sort((a, c) => LEVEL[a.difficulty] - LEVEL[c.difficulty]);
+
+return { ENTRIES };
+})();
+
+const __m_collection5 = (() => {
+// Collection 5: curves, spirals, packings and fractals
+// Authored artworks registered into the shared catalog. Deterministic only.
+const { Builder, ring, fillRings, fold, inDisc, polar, GEMS, CATALOG, LEVEL, SQ3, square } = __m_artworks;
+const { rng, alongCurve, alongPoly, hexPack, orbitPack, pascalMod, hexPlate } = __m_collection2;
+
+const TAU = Math.PI * 2;
+
+const ENTRIES = [
+];
+
+CATALOG.push(...ENTRIES);
+CATALOG.sort((a, c) => LEVEL[a.difficulty] - LEVEL[c.difficulty]);
+
+return { ENTRIES };
 })();
 
 const __m_meta = (() => {
@@ -2812,6 +2879,9 @@ const __m_app = (() => {
 const { CATALOG, getArtwork, sessionLabel, LEVEL, GEMS } = __m_artworks;
 const { META } = __m_meta;
 const { COLLECTION_SIZE } = __m_collection2;
+const { ENTRIES: C3 } = __m_collection3;
+const { ENTRIES: C4 } = __m_collection4;
+const { ENTRIES: C5 } = __m_collection5;
 const { Board, renderThumb, exportPNG, tonesFor, fitCamera, setCanvasTheme } = __m_board;
 const { THEMES, themeById } = __m_themes;
 const { paintGem, rgbStr } = __m_gems;
@@ -2999,7 +3069,7 @@ function renderGallery() {
 function renderStats() {
   const done = Object.values(S.summary).filter((s) => s.completed).length;
   const gems = Object.values(S.summary).reduce((a, s) => a + (s.count || 0), 0);
-  $('#st-done').textContent = `${done} / ${COLLECTION_SIZE}`;
+  $('#st-done').textContent = `${done} / ${CATALOG.length}`;
   $('#st-gems').textContent = fmtN(gems);
 }
 

@@ -1,6 +1,9 @@
 import { CATALOG, getArtwork, sessionLabel, LEVEL, GEMS } from './artworks.js';
 import { META } from './meta.js';
 import { COLLECTION_SIZE } from './collection2.js';
+import { ENTRIES as C3 } from './collection3.js';
+import { ENTRIES as C4 } from './collection4.js';
+import { ENTRIES as C5 } from './collection5.js';
 import { Board, renderThumb, exportPNG, tonesFor, fitCamera, setCanvasTheme } from './board.js';
 import { THEMES, themeById } from './themes.js';
 import { paintGem, rgbStr } from './gems.js';
@@ -20,6 +23,7 @@ const ICON = {
   find: svg('<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>'),
   heart: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.5s-7.5-4.6-9.3-9.2C1.3 7.6 3.6 4 7.2 4c2 0 3.6 1.1 4.8 2.8C13.2 5.1 14.8 4 16.8 4c3.6 0 5.9 3.6 4.5 7.3-1.8 4.6-9.3 9.2-9.3 9.2z"/></svg>',
   heartO: svg('<path d="M12 20.5s-7.5-4.6-9.3-9.2C1.3 7.6 3.6 4 7.2 4c2 0 3.6 1.1 4.8 2.8C13.2 5.1 14.8 4 16.8 4c3.6 0 5.9 3.6 4.5 7.3-1.8 4.6-9.3 9.2-9.3 9.2z"/>'),
+  undo: svg('<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/>'),
   check: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 'stroke-width="3.2"'),
   play: '<svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M7 4.5v15l13-7.5z"/></svg>',
   palette: svg('<circle cx="6" cy="17" r="2.5"/><circle cx="12" cy="17" r="2.5"/><circle cx="18" cy="17" r="2.5"/><path d="M12 4l4 4-4 5-4-5z"/>'),
@@ -38,10 +42,11 @@ const fmtTime = (ms) => { const m = Math.round(ms / 60000); return m < 1 ? 'unde
 
 // ---------------------------------------------------------------- state
 const S = {
-  settings: { sound: true, autoAdvance: true, reduced: null, vibe: true, coached: false, theme: 'ivory' },
+  settings: { sound: true, autoAdvance: true, reduced: null, vibe: true, coached: false, theme: 'ivory', hideDone: true, streak: 0, lastDay: '' },
   favorites: new Set(),
   summary: {}, // artId -> {count,total,completed,updated,time}
-  filters: { status: 'all', diff: 'all', cat: 'all' },
+  filters: { status: 'all', diff: 'all', cat: 'all', q: '' },
+  expanded: new Set(),
   cur: null,
 };
 const sysReduced = matchMedia('(prefers-reduced-motion: reduce)');
@@ -152,17 +157,31 @@ function renderGallery() {
   const f = S.filters, box = $('#sections');
   box.innerHTML = '';
   thumbQueue.length = 0;
+  const q = f.q.trim().toLowerCase();
   const list = CATALOG.filter((m) =>
     (f.cat === 'all' || m.category === f.cat) && (f.diff === 'all' || m.difficulty === f.diff) &&
-    (f.status === 'all' || (f.status === 'fav' ? S.favorites.has(m.id) : statusOf(m.id) === f.status)));
+    (f.status === 'all' || (f.status === 'fav' ? S.favorites.has(m.id) : statusOf(m.id) === f.status)) &&
+    (!q || m.name.toLowerCase().includes(q)));
+  const browsing = f.diff === 'all' && f.status === 'all' && !q;
+  const perRow = Math.max(2, Math.floor((box.clientWidth || 1000) / 248));
   $('#empty').hidden = list.length > 0;
   const levels = [...new Set(list.map((m) => m.difficulty))];
   for (const lv of levels) {
-    const items = list.filter((m) => m.difficulty === lv);
+    const all = list.filter((m) => m.difficulty === lv);
+    const limit = perRow * 2;
+    const collapsed = browsing && all.length > limit + 1 && !S.expanded.has(lv);
+    const items = collapsed ? all.slice(0, limit) : all;
+    const done = all.filter((m) => statusOf(m.id) === 'done').length;
     const sec = document.createElement('section');
     sec.className = 'level';
-    sec.innerHTML = `<div class="level-head"><h2>${lv}</h2><i class="pips" data-pips="${PIPS(lv)}"></i><p>${LEVEL_INFO[lv]} · ${items.length} ${items.length === 1 ? 'artwork' : 'artworks'}</p></div><div class="grid"></div>`;
+    sec.innerHTML = `<div class="level-head"><h2>${lv}</h2><i class="pips" data-pips="${PIPS(lv)}"></i><p>${LEVEL_INFO[lv]}</p><span class="level-count">${done}/${all.length} finished</span></div><div class="grid"></div>`;
     const grid = sec.querySelector('.grid');
+    if (collapsed) {
+      const more = document.createElement('div'); more.className = 'more';
+      more.innerHTML = `<button>Show all ${all.length} ${lv} artworks</button>`;
+      more.firstChild.onclick = () => { S.expanded.add(lv); renderGallery(); };
+      sec.appendChild(more);
+    }
     for (const m of items) {
       const card = document.createElement('article');
       card.className = 'card';
@@ -183,12 +202,43 @@ function renderGallery() {
   }
   renderRail();
   renderStats();
+  renderFeatured();
+}
+
+// A featured artwork that changes daily, plus the play streak.
+function today() { const d = new Date(); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; }
+function dayNumber() { return Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000); }
+function featuredPick() {
+  const pool = CATALOG.filter((m) => statusOf(m.id) !== 'done' && m.difficulty !== 'Master');
+  const src = pool.length ? pool : CATALOG;
+  let h = dayNumber() * 2654435761 >>> 0;
+  return src[h % src.length];
+}
+function renderFeatured() {
+  const box = $('#featured');
+  if (S.filters.q || S.filters.status !== 'all' || S.filters.diff !== 'all') { box.innerHTML = ''; return; }
+  const m = featuredPick(), meta = metaOf(m), st = statusOf(m.id), sum = S.summary[m.id];
+  const streak = S.settings.lastDay && (S.settings.lastDay === today() || S.settings.lastDay === yesterday()) ? S.settings.streak : 0;
+  box.innerHTML = `<button class="feat-card" aria-label="Today's pick: ${m.name}, ${m.difficulty}, ${fmtN(meta.n)} gems">
+    <div><div class="eyebrow">Today's pick${streak > 1 ? `<span class="streak">${ICON.check.replace('<svg', '<svg width="12" height="12"')}${streak}-day streak</span>` : ''}</div>
+    <h2>${m.name}</h2><p>${m.difficulty} · ${fmtN(meta.n)} gems · ${sessionLabel(meta.n)}</p>
+    <span class="cta">${ICON.play}${st === 'progress' ? `Continue · ${Math.floor((sum.count / meta.n) * 100)}%` : 'Play now'}</span></div>
+    <div class="feat-thumb thumb loading" data-id="${m.id}" data-size="420"></div></button>`;
+  box.firstElementChild.onclick = () => openArt(m.id);
+  io.observe(box.querySelector('.feat-thumb'));
+}
+function yesterday() { const d = new Date(Date.now() - 86400000); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; }
+function markPlayedToday() {
+  const t = today(), st = S.settings;
+  if (st.lastDay === t) return;
+  st.streak = st.lastDay === yesterday() ? st.streak + 1 : 1;
+  st.lastDay = t; saveSettings();
 }
 
 function renderStats() {
   const done = Object.values(S.summary).filter((s) => s.completed).length;
   const gems = Object.values(S.summary).reduce((a, s) => a + (s.count || 0), 0);
-  $('#st-done').textContent = `${done} / ${COLLECTION_SIZE}`;
+  $('#st-done').textContent = `${done} / ${CATALOG.length}`;
   $('#st-gems').textContent = fmtN(gems);
 }
 
@@ -221,6 +271,8 @@ document.querySelectorAll('.filters [data-group]').forEach((g) => {
     renderGallery();
   });
 });
+let searchT;
+$('#search').addEventListener('input', (e) => { clearTimeout(searchT); searchT = setTimeout(() => { S.filters.q = e.target.value; renderGallery(); }, 120); });
 document.querySelectorAll('.chips .pips').forEach((p) => { p.dataset.pips = '◆'.repeat(+p.dataset.n); });
 
 // ---------------------------------------------------------------- play
@@ -229,8 +281,9 @@ const board = new Board($('#cv'), {
   onPlace(i) {
     const c = S.cur, g = c.art.sockets[i];
     c.remaining[g.p]--;
-    c.placed++;
+    c.placed++; board.placedCount = c.placed;
     c.dirty = true; c.lastInput = performance.now(); scheduleSave();
+    markPlayedToday();
     sfx.place(c.placed);
     if (S.settings.vibe && navigator.vibrate && performance.now() - lastVibe > 70) { lastVibe = performance.now(); try { navigator.vibrate(4); } catch {} }
     updatePalItem(g.p); updateProgress(); mmDirty();
@@ -247,6 +300,17 @@ const board = new Board($('#cv'), {
     for (const i of ids) if (c.filled[i]) { c.filled[i] = 0; c.remaining[c.art.sockets[i].p]++; c.placed--; board.anims.delete(i); }
     c.dirty = true; scheduleSave();
     refreshPalette(); updateProgress(); board.invalidate(); mmDirty();
+  },
+  onPick(p, i) {
+    if (S.cur.sel !== p) selectPal(p, true);
+    board.hint = { i, t: performance.now() }; board.render();
+    toast(`Picked gem ${p + 1} · ${S.cur.art.palette[p].name}`);
+    if (S.settings.vibe && navigator.vibrate) try { navigator.vibrate(12); } catch {}
+  },
+  onStrokeEnd(ids) {
+    const c = S.cur; if (!c || c.completed) return;
+    c.undo.push(ids.slice()); if (c.undo.length > 100) c.undo.shift();
+    updateUndo();
   },
   onCamera(cam) { if (S.cur) { S.cur.camera = cam; S.cur.dirty = true; scheduleSave(); } },
   onFrame() { updateMinimapView(); },
@@ -279,6 +343,8 @@ function updatePalItem(p) {
   const c = S.cur, el = palEls[p]; if (!el) return;
   const left = c.remaining[p], total = c.totals[p];
   el.classList.toggle('done', left === 0);
+  if (left > 0 || !S.settings.hideDone || c.completed) el.classList.remove('gone');
+  else if (!el.classList.contains('gone') && p !== c.sel) el.classList.add('gone');
   el.querySelector('.left').textContent = left === 0 ? 'Done' : `${fmtN(left)} left`;
   el.querySelector('.fill').style.strokeDashoffset = String(144.5 * (left / total));
   el.setAttribute('aria-label', `Gem ${p + 1}, ${c.art.palette[p].name}, ${left === 0 ? 'complete' : left + ' left'}`);
@@ -294,7 +360,9 @@ function refreshPalette() { S.cur.art.palette.forEach((_, p) => updatePalItem(p)
 function selectPal(p, user) {
   const c = S.cur; if (!c) return;
   if (user) sfx.select();
+  const prev = c.sel;
   c.sel = p; board.setSelected(p); refreshPalette();
+  if (S.settings.hideDone && c.remaining[prev] === 0 && palEls[prev]) palEls[prev].classList.add('gone');
   palEls[p].scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: reducedMotion() ? 'auto' : 'smooth' });
   c.dirty = true; scheduleSave();
 }
@@ -302,6 +370,7 @@ function paletteComplete(p) {
   const c = S.cur, el = palEls[p];
   if (el) { el.classList.remove('cheer'); void el.offsetWidth; el.classList.add('cheer'); }
   if (c.placed === c.art.sockets.length) { finish(); return; }
+  if (S.settings.hideDone) setTimeout(() => { if (S.cur === c && c.remaining[p] === 0 && c.sel !== p) el.classList.add('gone'); }, 900);
   sfx.paletteDone();
   toast(`${c.art.palette[p].name} complete`);
   if (S.settings.autoAdvance) {
@@ -361,7 +430,8 @@ async function openArt(id) {
   let sel = rec ? Math.min(rec.sel, art.palette.length - 1) : 0;
   if (remaining[sel] === 0) { const q = remaining.findIndex((r) => r > 0); if (q >= 0) sel = q; }
   const prevTime = (S.summary[id] && S.summary[id].time) || 0;
-  S.cur = { art, filled, remaining, placed, sel, camera: rec && rec.camera, completed: placed === art.sockets.length, dirty: false, time: prevTime, lastInput: performance.now() };
+  S.cur = { art, filled, remaining, placed, sel, camera: rec && rec.camera, completed: placed === art.sockets.length, dirty: false, time: prevTime, lastInput: performance.now(), undo: [] };
+  board.placedCount = placed;
   $('#art-name').textContent = art.name;
   document.title = `${art.name} · Lustra`;
   show('play');
@@ -369,7 +439,7 @@ async function openArt(id) {
   setMode('paint');
   mm.size = 0; mm.box.hidden = true;
   board.load(art, filled, sel, rec && rec.camera);
-  buildPalette(); updateProgress(); mmDirty();
+  buildPalette(); updateProgress(); mmDirty(); updateUndo();
   palEls[sel] && palEls[sel].scrollIntoView({ inline: 'center', block: 'nearest' });
   if (S.cur.completed) setTimeout(() => completionPanel(true), 300);
   else if (!S.settings.coached) showCoach();
@@ -385,8 +455,11 @@ function leave() {
   renderGallery();
 }
 function show(which) {
-  $('#gallery').hidden = which !== 'gallery';
-  $('#play').hidden = which !== 'play';
+  for (const id of ['gallery', 'play']) {
+    const el = $('#' + id), on = id === which;
+    if (on && el.hidden && !reducedMotion()) { el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); }
+    el.hidden = !on;
+  }
 }
 
 // Active play time: counts while the tab is visible and the player touched it in the last minute.
@@ -396,8 +469,21 @@ setInterval(() => {
 }, 1000);
 document.addEventListener('pointerdown', () => { if (S.cur) S.cur.lastInput = performance.now(); }, { capture: true, passive: true });
 
+function updateUndo() { const c = S.cur; $('#t-undo').disabled = !c || c.completed || !c.undo.length; }
+function undo() {
+  const c = S.cur; if (!c || c.completed || !c.undo.length) return;
+  const ids = c.undo.pop();
+  for (const i of ids) if (c.filled[i]) { c.filled[i] = 0; c.remaining[c.art.sockets[i].p]++; c.placed--; board.anims.delete(i); }
+  board.placedCount = c.placed;
+  c.dirty = true; scheduleSave();
+  refreshPalette(); updateProgress(); board.invalidate(); mmDirty(); updateUndo();
+  sfx.select();
+  toast(ids.length === 1 ? 'Removed the last gem' : `Removed ${ids.length} gems`);
+}
+
 function finish() {
   const c = S.cur;
+  updateUndo();
   c.completed = true; c.dirty = true; flushSave();
   setTimeout(() => {
     if (S.cur !== c) return;
@@ -484,6 +570,7 @@ function openMenu() {
   $('#opt-sound').checked = S.settings.sound;
   $('#opt-vibe').checked = S.settings.vibe;
   $('#opt-auto').checked = S.settings.autoAdvance;
+  $('#opt-hide').checked = S.settings.hideDone;
   $('#opt-motion').checked = reducedMotion();
   $('#opt-sound').focus();
 }
@@ -493,6 +580,7 @@ document.addEventListener('pointerdown', (e) => { if (!$('#menu').hidden && !e.t
 $('#opt-sound').onchange = (e) => { S.settings.sound = e.target.checked; sfx.setSound(S.settings.sound); saveSettings(); };
 $('#opt-vibe').onchange = (e) => { S.settings.vibe = e.target.checked; saveSettings(); };
 $('#opt-auto').onchange = (e) => { S.settings.autoAdvance = e.target.checked; saveSettings(); };
+$('#opt-hide').onchange = (e) => { S.settings.hideDone = e.target.checked; saveSettings(); if (S.cur) { palEls.forEach((el) => el.classList.remove('gone')); refreshPalette(); } };
 $('#opt-motion').onchange = (e) => { S.settings.reduced = e.target.checked; applyMotion(); saveSettings(); };
 $('#m-help').onclick = () => { closeMenu(); showCoach(); };
 $('#m-export').onclick = () => { closeMenu(); doExport(); };
@@ -506,7 +594,7 @@ $('#m-restart').onclick = () => {
       closeModal();
       c.filled.fill(0); c.placed = 0; c.completed = false; c.time = 0;
       c.remaining = c.art.palette.map(() => 0); c.art.sockets.forEach((s) => c.remaining[s.p]++);
-      c.sel = 0; c.camera = null; c.dirty = true; flushSave();
+      c.sel = 0; c.camera = null; c.dirty = true; c.undo = []; flushSave(); updateUndo(); board.placedCount = 0;
       board.load(c.art, c.filled, 0, null);
       refreshPalette(); updateProgress(); mmDirty();
       toast('Artwork restarted');
@@ -571,7 +659,8 @@ function setMode(m) {
 }
 $('#btn-back').innerHTML = ICON.back; $('#btn-menu').innerHTML = ICON.menu;
 $('#t-paint').innerHTML = ICON.paint; $('#t-pan').innerHTML = ICON.pan;
-$('#t-zin').innerHTML = ICON.zin; $('#t-zout').innerHTML = ICON.zout; $('#t-fit').innerHTML = ICON.fit; $('#t-hint').innerHTML = ICON.find;
+$('#t-zin').innerHTML = ICON.zin; $('#t-zout').innerHTML = ICON.zout; $('#t-fit').innerHTML = ICON.fit; $('#t-hint').innerHTML = ICON.find; $('#t-undo').innerHTML = ICON.undo;
+$('#t-undo').onclick = undo;
 $('#btn-back').onclick = leave;
 $('#t-paint').onclick = () => setMode('paint');
 $('#t-pan').onclick = () => setMode('pan');
@@ -584,6 +673,7 @@ window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { if (!$('#coach').hidden) $('#coach-ok').click(); else if (!$('#modal').hidden) closeModal(); else closeMenu(); return; }
   if (!S.cur || !$('#modal').hidden || !$('#coach').hidden || e.target.closest('input, #menu')) return;
   if (e.code === 'Space' && (e.target === document.body || e.target.id === 'cv')) { board.space = true; e.preventDefault(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { undo(); e.preventDefault(); return; }
   if (e.key === '+' || e.key === '=') board.zoomBy(1.4);
   else if (e.key === '-') board.zoomBy(1 / 1.4);
   else if (e.key === '0') board.fit(true);
@@ -606,7 +696,9 @@ sysReduced.addEventListener && sysReduced.addEventListener('change', applyMotion
 (async function boot() {
   try {
     const st = await store.get('settings');
-    if (st && typeof st === 'object') for (const k of ['sound', 'autoAdvance', 'reduced', 'vibe', 'coached']) if (typeof st[k] === 'boolean') S.settings[k] = st[k];
+    if (st && typeof st === 'object') for (const k of ['sound', 'autoAdvance', 'reduced', 'vibe', 'coached', 'hideDone']) if (typeof st[k] === 'boolean') S.settings[k] = st[k];
+    if (Number.isInteger(st.streak)) S.settings.streak = st.streak;
+    if (typeof st.lastDay === 'string') S.settings.lastDay = st.lastDay;
     if (st && typeof st.theme === 'string') S.settings.theme = themeById(st.theme).id;
     const fv = await store.get('favorites');
     if (Array.isArray(fv)) S.favorites = new Set(fv.filter((x) => typeof x === 'string'));
@@ -622,6 +714,7 @@ sysReduced.addEventListener && sysReduced.addEventListener('change', applyMotion
   applyMotion();
   applyTheme(S.settings.theme, false);
   renderGallery();
+  requestAnimationFrame(() => setTimeout(() => $('#splash').classList.add('out'), 250));
 })();
 
 // test hook

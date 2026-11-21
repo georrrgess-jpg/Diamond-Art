@@ -39,6 +39,22 @@ export const GEMS = {
   jade: { name: 'Jade', hex: '#4fae7a' },
   sky: { name: 'Sky', hex: '#5fa8ee' },
   sunset: { name: 'Sunset', hex: '#f08a3c' },
+  tangerine: { name: 'Tangerine', hex: '#f7882f' },
+  lemon: { name: 'Lemon', hex: '#f1dc4a' },
+  olive: { name: 'Olive', hex: '#8a9a3b' },
+  cobalt: { name: 'Cobalt', hex: '#2346c8' },
+  periwinkle: { name: 'Periwinkle', hex: '#8f9cf2' },
+  mauve: { name: 'Mauve', hex: '#b07aa1' },
+  burgundy: { name: 'Burgundy', hex: '#7a1530' },
+  chocolate: { name: 'Chocolate', hex: '#6b3f24' },
+  slate: { name: 'Slate', hex: '#5d6b7e' },
+  topaz: { name: 'Topaz', hex: '#f2a93b' },
+  morganite: { name: 'Morganite', hex: '#f1b5a8' },
+  tanzanite: { name: 'Tanzanite', hex: '#4b3fb5' },
+  peridot: { name: 'Peridot', hex: '#a9cf3e' },
+  scarlet: { name: 'Scarlet', hex: '#e0262f' },
+  opal: { name: 'Opal', hex: '#e6eef4', tones: ['#6e7f99', '#a9b9d4', '#dbe6f2', '#f6f0fa', '#ffffff'] },
+  onyx: { name: 'Onyx', hex: '#2a2830', tones: ['#0b0a0e', '#1b1a20', '#34323c', '#6d6a7a', '#c9c6d6'] },
 };
 
 // ---------------------------------------------------------------- builder

@@ -12,7 +12,7 @@ Object.assign(GEMS, {
   lime: { name: 'Lime', hex: '#96c63c' },
 });
 
-function rng(seed) {
+export function rng(seed) {
   let a = seed >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) | 0;
@@ -23,7 +23,7 @@ function rng(seed) {
 }
 
 // Place gems along a parametric curve at even arc-length spacing, aligned to the tangent.
-function alongCurve(b, f, t0, t1, step, shape, w, h, pal, { force = false, gap = 0.3, samples = 6000 } = {}) {
+export function alongCurve(b, f, t0, t1, step, shape, w, h, pal, { force = false, gap = 0.3, samples = 6000 } = {}) {
   let [px, py] = f(t0), acc = step, i = 0;
   for (let k = 1; k <= samples; k++) {
     const t = t0 + ((t1 - t0) * k) / samples;
@@ -40,7 +40,7 @@ function alongCurve(b, f, t0, t1, step, shape, w, h, pal, { force = false, gap =
 }
 
 // Gems along the edges of a closed polygon.
-function alongPoly(b, pts, step, shape, w, h, p, opts = {}) {
+export function alongPoly(b, pts, step, shape, w, h, p, opts = {}) {
   for (let e = 0; e < pts.length; e++) {
     const [ax, ay] = pts[e], [bx, by] = pts[(e + 1) % pts.length];
     const len = Math.hypot(bx - ax, by - ay), n = Math.max(1, Math.round(len / step));
@@ -52,7 +52,7 @@ function alongPoly(b, pts, step, shape, w, h, p, opts = {}) {
 }
 
 // Round gems on a hexagonal packing; fn(x, y) returns a palette index or null.
-function hexPack(b, pitch, N, size, fn, opts = {}) {
+export function hexPack(b, pitch, N, size, fn, opts = {}) {
   const rowH = pitch * SQ3 / 2;
   for (let r = -N; r <= N; r++) for (let q = -N - Math.ceil(r / 2); q <= N - Math.floor(r / 2); q++) {
     const x = pitch * (q + r / 2), y = rowH * r;
@@ -63,7 +63,7 @@ function hexPack(b, pitch, N, size, fn, opts = {}) {
 
 // Dihedral (k-fold, mirrored) greedy packing: each accepted gem is placed with its
 // whole orbit of 2k copies, so the result is perfectly symmetric.
-function orbitPack(b, { k, R, sizes, tries, seed, shapeOf, color, gap = 0.6 }) {
+export function orbitPack(b, { k, R, sizes, tries, seed, shapeOf, color, gap = 0.6 }) {
   const rand = rng(seed), half = Math.PI / k;
   sizes.forEach((size, si) => {
     const n = tries[si];
@@ -90,7 +90,7 @@ function orbitPack(b, { k, R, sizes, tries, seed, shapeOf, color, gap = 0.6 }) {
   });
 }
 
-function pascalMod(n, p) {
+export function pascalMod(n, p) {
   const T = [[1]];
   for (let r = 1; r <= n; r++) {
     const row = [1];
@@ -100,7 +100,7 @@ function pascalMod(n, p) {
   return T;
 }
 
-const hexPlate = (R) => [0, 1, 2, 3, 4, 5].map((k) => [R * Math.cos((k * TAU) / 6), R * Math.sin((k * TAU) / 6)]);
+export const hexPlate = (R) => [0, 1, 2, 3, 4, 5].map((k) => [R * Math.cos((k * TAU) / 6), R * Math.sin((k * TAU) / 6)]);
 
 // ---------------------------------------------------------------- Beginner
 function petalClock() {

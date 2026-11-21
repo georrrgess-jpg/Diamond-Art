@@ -12,6 +12,10 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+<div id="splash" class="splash" aria-hidden="true">
+  <svg class="splash-gem" viewBox="0 0 40 40"><path d="M20 3 35 14 20 37 5 14Z" fill="#2f6fe0"/><path d="M5 14h30L20 3Z" fill="#8fc6f2"/><path d="M12 14 20 3l8 11Z" fill="#d6e9fb"/><path d="M12 14h16l-8 23Z" fill="#1d4fb8"/></svg>
+  <div class="splash-word">Lustra</div>
+</div>
 <div id="app">
   <!-- ============ GALLERY ============ -->
   <section id="gallery" class="screen" aria-label="Gallery">
@@ -37,12 +41,15 @@
         </div>
       </header>
 
+      <section id="featured" class="featured" aria-label="Today's pick"></section>
+
       <section id="rail" class="rail" hidden aria-labelledby="rail-title">
         <h2 class="sec-title" id="rail-title">Continue where you left off</h2>
         <div class="rail-track" id="rail-track"></div>
       </section>
 
       <div class="filters" role="toolbar" aria-label="Filters">
+        <label class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg><input id="search" type="search" placeholder="Search artworks" aria-label="Search artworks" autocomplete="off"></label>
         <div class="seg" data-group="status" role="group" aria-label="Show">
           <button data-v="all" aria-pressed="true">All</button>
           <button data-v="progress" aria-pressed="false">In progress</button>
@@ -94,6 +101,7 @@
         <button class="tool" id="t-zin" aria-label="Zoom in" data-tip="Zoom in"></button>
         <button class="tool" id="t-zout" aria-label="Zoom out" data-tip="Zoom out"></button>
         <button class="tool" id="t-fit" aria-label="Show whole artwork" data-tip="Whole view"></button>
+        <button class="tool" id="t-undo" aria-label="Undo last placement" data-tip="Undo" disabled></button>
         <button class="tool accent" id="t-hint" aria-label="Find a gem spot" data-tip="Find"></button>
       </div>
       <div class="minimap" id="minimap" hidden aria-label="Overview map: tap to jump"><canvas id="mm"></canvas><i id="mm-view"></i></div>
@@ -107,6 +115,7 @@
       <label class="row"><span>Sound</span><input type="checkbox" id="opt-sound" class="switch"></label>
       <label class="row"><span>Vibration</span><input type="checkbox" id="opt-vibe" class="switch"></label>
       <label class="row"><span>Jump to next gem when one is done</span><input type="checkbox" id="opt-auto" class="switch"></label>
+      <label class="row"><span>Hide finished gems in the tray</span><input type="checkbox" id="opt-hide" class="switch"></label>
       <label class="row"><span>Reduce motion</span><input type="checkbox" id="opt-motion" class="switch"></label>
       <hr>
       <button class="row btn-row" id="m-theme">Theme <span class="theme-dot" aria-hidden="true"></span></button>
@@ -119,8 +128,8 @@
         <h3 id="coach-title">How to play</h3>
         <ol class="steps">
           <li><span class="step-ico" data-ico="palette"></span><div><b>Pick a gem</b><p>Choose a numbered gem from the tray at the bottom.</p></div></li>
-          <li><span class="step-ico" data-ico="tap"></span><div><b>Tap matching numbers</b><p>Spots with that number light up. Tap one, or drag across several to fill them in one stroke.</p></div></li>
-          <li><span class="step-ico" data-ico="zoom"></span><div><b>Zoom in for detail</b><p>Pinch or scroll to zoom. Use two fingers, the Move tool or Space + drag to look around.</p></div></li>
+          <li><span class="step-ico" data-ico="tap"></span><div><b>Tap matching numbers</b><p>Spots with that number light up. Tap one, or drag across several to fill them in one stroke. Press and hold any spot to switch to its gem.</p></div></li>
+          <li><span class="step-ico" data-ico="zoom"></span><div><b>Zoom in for detail</b><p>Pinch, scroll or double-tap to zoom. Use two fingers, the Move tool or Space + drag to look around. Undo takes back your last stroke.</p></div></li>
           <li><span class="step-ico" data-ico="find"></span><div><b>Stuck?</b><p>Find shows you a spot that still needs the selected gem. Progress saves automatically.</p></div></li>
         </ol>
         <button class="btn primary wide" id="coach-ok">Start placing gems</button>
