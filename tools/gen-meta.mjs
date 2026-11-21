@@ -4,7 +4,7 @@ import { writeFileSync } from 'node:fs';
 globalThis.document = {};
 const root = new URL('../js/', import.meta.url);
 const A = await import(new URL('artworks.js', root));
-for (const c of ['collection2', 'collection3', 'collection4', 'collection5']) await import(new URL(c + '.js', root));
+for (const c of ['collection2', 'collection3', 'collection4', 'collection5', 'collection6', 'collection7', 'collection8']) await import(new URL(c + '.js', root));
 const meta = {};
 for (const m of A.CATALOG) {
   const a = A.getArtwork(m.id);

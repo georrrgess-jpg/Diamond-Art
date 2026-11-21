@@ -8,7 +8,7 @@ import re, pathlib, subprocess
 
 ROOT = pathlib.Path(__file__).parent
 subprocess.run(['node', str(ROOT / 'tools' / 'gen-meta.mjs')], check=True)
-ORDER = ['gems', 'artworks', 'collection2', 'collection3', 'collection4', 'collection5', 'meta', 'store', 'audio', 'board', 'themes', 'app']
+ORDER = ['gems', 'artworks', 'collection2', 'collection3', 'collection4', 'collection5', 'collection6', 'collection7', 'collection8', 'meta', 'store', 'audio', 'board', 'themes', 'app']
 
 def bundle_module(name):
     src = (ROOT / 'js' / f'{name}.js').read_text()

@@ -16,9 +16,12 @@ import '../js/collection2.js';
 import * as c3 from '../js/collection3.js';
 import * as c4 from '../js/collection4.js';
 import * as c5 from '../js/collection5.js';
+import * as c6 from '../js/collection6.js';
+import * as c7 from '../js/collection7.js';
+import * as c8 from '../js/collection8.js';
 import { renderThumb } from '../js/board.js';
 const which = new URLSearchParams(location.search).get('c') || 'all';
-const list = which === 'all' ? CATALOG : { collection3: c3, collection4: c4, collection5: c5 }[which].ENTRIES;
+const list = which === 'all' ? CATALOG : { collection3: c3, collection4: c4, collection5: c5, collection6: c6, collection7: c7, collection8: c8 }[which].ENTRIES;
 const g = document.getElementById('g');
 for (const m of list) {
   const a = getArtwork(m.id);
