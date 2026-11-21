@@ -561,7 +561,7 @@ export const CATALOG = [
   { id: 'compass-rose', version: 1, name: 'Compass Rose', category: 'mandala', difficulty: 'Beginner', build: compassRose },
   { id: 'moroccan-tile', version: 1, name: 'Zellige Tiles', category: 'geometric', difficulty: 'Medium', build: moroccanTile },
   { id: 'argyle', version: 1, name: 'Rose Argyle', category: 'geometric', difficulty: 'Medium', build: argyle },
-  { id: 'hexagram', version: 1, name: 'Porcelain Star', category: 'geometric', difficulty: 'Medium', build: hexagram },
+  { id: 'hexagram', version: 1, name: 'Porcelain Star', category: 'geometric', difficulty: 'Beginner', build: hexagram },
   { id: 'tumbling-blocks', version: 1, name: 'Tumbling Blocks', category: 'geometric', difficulty: 'Medium', build: tumblingBlocks },
   { id: 'sea-glass', version: 1, name: 'Sea Glass Spiral', category: 'mandala', difficulty: 'Intricate', build: seaGlass },
   { id: 'vortex', version: 1, name: 'Aurora Vortex', category: 'mandala', difficulty: 'Intricate', build: vortex },

@@ -98,25 +98,22 @@ function dcInner(a, c, e) {
 }
 
 // ---------------------------------------------------------------- Beginner
-// Three-petal rose drawn as two nested outlines with bold accents between the petals.
+// Three-petal rose (r = cos 3t) in bold gems: outlined petals on a cream ground.
 function trefoilRose() {
   const b = new Builder();
   const P = { garnet: 0, ruby: 1, rose: 2, blush: 3, gold: 4, cream: 5 };
-  const A = 226, rose = (s) => (t) => polar(s * A * Math.cos(3 * t), t);
-  b.add('round', 0, 0, 40, 40, 0, P.gold, { force: true });
-  alongCurve(b, rose(1), 0, Math.PI, 24, 'round', 21, 21, () => P.garnet, { samples: 6000 });
-  hexPack(b, 23, 12, 20, (x, y) => {
-    const rho = Math.hypot(x, y), th = Math.atan2(x, -y), lim = A * Math.cos(3 * th);
-    if (rho < 26 || lim <= 0 || rho > lim - 14) return null;
-    const f = rho / lim;
-    return f < 0.42 ? P.gold : f < 0.74 ? P.rose : P.blush;
-  }, { force: false, gap: 0.5 });
-  ring(b, 168, 3, 'marquise', 34, 78, P.ruby, { phase: 0.5 });
-  ring(b, 98, 3, 'round', 24, 24, P.garnet, { phase: 0.5, force: false, gap: 0.4 });
-  ring(b, 226, 3, 'round', 22, 22, P.gold, { phase: 0.5, force: false, gap: 0.4 });
-  ring(b, 200, 6, 'round', 16, 16, P.cream, { phase: 0.25, force: false, gap: 0.4 });
-  ring(b, 262, 42, 'round', 20, 20, (i) => (i % 2 ? P.ruby : P.cream), { force: false, gap: 0.4 });
-  return { b, palette: ['garnet', 'ruby', 'rose', 'blush', 'gold', 'cream'], plate: { type: 'circle', r: 286 } };
+  const A = 232;
+  b.add('round', 0, 0, 44, 44, 0, P.gold, { force: true });
+  fillRings(b, 22, 236, 23, (r, th) => {
+    const lim = A * Math.cos(3 * th);
+    if (lim > 0 && r < lim + 4) {
+      if (lim - r < 26) return P.garnet;
+      return r < 70 ? P.ruby : P.rose;
+    }
+    return fold(th, 3) > 0.8 && r > 100 ? P.gold : P.cream;
+  }, { limit: inDisc(238), sym: 6, rowGap: 1.09 });
+  ring(b, 256, 44, 'round', 20, 20, (i) => (i % 2 ? P.ruby : P.gold), { force: false, gap: 0.4 });
+  return { b, palette: ['garnet', 'ruby', 'rose', 'blush', 'gold', 'cream'], plate: { type: 'circle', r: 280 } };
 }
 
 // Two interleaved Archimedean spiral arms of large round gems.
@@ -153,25 +150,21 @@ function vicsekCross() {
 }
 
 // ---------------------------------------------------------------- Medium
-// Nested limaçons r = b + a cos(theta): banded egg-like rings with inner loops drawn as lines.
-function limaconNest() {
+// Op-art wave field: horizontal ribbons bent by a sine wave whose amplitude swells toward the
+// middle row, on a hexagonal packing of round gems.
+function rippleRibbons() {
   const b = new Builder();
-  const P = { teal: 0, aqua: 1, mint: 2, cream: 3, forest: 4, gold: 5, jade: 6 };
-  const a = 104, lim = (bb) => (t) => polar(bb + a * Math.cos(t), t), OUT = 168;
-  const loopPoly = [30, 66].map((bb) => sampleCurve(lim(bb), Math.acos(-bb / a), TAU - Math.acos(-bb / a), 400));
-  alongCurve(b, lim(OUT), 0, TAU, 15, 'round', 13, 13, (t, i) => (i % 2 ? P.gold : P.forest), { samples: 4000 });
-  hexPack(b, 16.2, 18, 14.4, (x, y) => {
-    const rho = Math.hypot(x, y), th = Math.atan2(x, -y), L = rho - a * Math.cos(th);
-    if (L > OUT - 10) return null;
-    if (pip(loopPoly[0], x, y)) return P.gold;
-    if (pip(loopPoly[1], x, y)) return P.cream;
-    return [P.forest, P.teal, P.aqua, P.mint, P.jade, P.forest][Math.max(0, Math.min(5, Math.floor((L + 20) / 32)))];
-  }, { force: false, gap: 0.3 });
-  let y0 = Infinity, y1 = -Infinity; for (const s of b.s) { y0 = Math.min(y0, s.y); y1 = Math.max(y1, s.y); }
-  const dy = -(y0 + y1) / 2;
-  shiftAll(b, 0, dy);
-  const plate = sampleCurve((t) => { const [x, y] = polar(OUT + 22 + a * Math.cos(t), t); return [x, y + dy]; }, 0, TAU, 96);
-  return { b, palette: ['teal', 'aqua', 'mint', 'cream', 'forest', 'gold', 'jade'], plate: { type: 'poly', pts: plate } };
+  const P = { teal: 0, cream: 1, coral: 2, forest: 3, tang: 4, sand: 5 };
+  const H = 214, lam = 142, w = 34;
+  hexPack(b, 19.6, 14, 17.6, (x, y) => {
+    if (Math.abs(x) > H - 4 || Math.abs(y) > H - 4) return null;
+    const amp = 40 * Math.cos((Math.PI * y) / (2 * H + 40)) ** 2;
+    const Y = y + amp * Math.cos((TAU * x) / lam);
+    const k = Math.floor(Y / w + 0.5), m = ((k % 4) + 4) % 4;
+    return m === 1 || m === 3 ? P.cream : (Math.abs(k) % 4 === 0 ? (k === 0 ? P.coral : P.teal) : P.forest);
+  });
+  alongPoly(b, square(H + 9), 18, 'square', 14, 14, P.tang, { force: true });
+  return { b, palette: ['teal', 'cream', 'coral', 'forest', 'tangerine', 'sand'], plate: { type: 'poly', pts: square(H + 26) } };
 }
 
 // Sierpinski carpet of 27 x 27 cells; removed squares become feature gems.
@@ -203,7 +196,7 @@ function mengerWindow() {
 function kochCrystal() {
   const b = new Builder();
   const P = { mid: 0, sap: 1, sky: 2, ice: 3, cry: 4, aqua: 5 };
-  const N = 14, s = 11.2, gw = SQ3 * s * 0.92, gh = 2 * s * 0.92, Rt = 262;
+  const N = 14, s = 11.2, gw = SQ3 * s * 0.92, gh = 2 * s * 0.92, Rt = 236;
   const tri = (off) => [0, 1, 2].map((k) => polar(Rt, off + (k * TAU) / 3));
   const step = (pts) => {
     const out = [];
@@ -226,6 +219,7 @@ function kochCrystal() {
     let p;
     if (pip(K0, x, y) && pip(K0b, x, y)) p = d <= 1 ? P.aqua : d % 3 === 2 ? P.sky : P.cry;
     else if (pip(K[1], x, y)) p = P.ice;
+    else if (pip(K[2], x, y)) p = P.sky;
     else if (pip(K[3], x, y)) p = P.sap;
     else p = d === N ? P.aqua : P.mid;
     b.add('hexagon', x, y, gw, gh, 0, p, { force: true });
@@ -307,15 +301,15 @@ function dragonPath() {
       dir = (dir + turn + 4) % 4;
     }
   }
-  const RR = maxR + 0.9;
+  const RR = maxR + 0.55;
   for (let u = -Math.ceil(RR) * 2; u <= Math.ceil(RR) * 2; u++) for (let v = -Math.ceil(RR) * 2; v <= Math.ceil(RR) * 2; v++) {
     if (((u + v) & 1) === 0 || used.has(u + ',' + v)) continue;
     const mx = u / 2, my = v / 2;
     if (Math.hypot(mx, my) > RR) continue;
     b.add('square', mx * L, my * L, sz, sz, Math.PI / 4, P.mid, { force: true });
   }
-  ring(b, RR * L + 18, 64, 'round', 16, 16, (i) => (i % 2 ? P.gold : P.cream), { force: false, gap: 0.3 });
-  return { b, palette: ['ruby', 'gold', 'emerald', 'sky', 'midnight', 'cream'], plate: { type: 'circle', r: RR * L + 38 } };
+  ring(b, RR * L + 20, 40, 'round', 24, 24, (i) => (i % 2 ? P.gold : P.cream), { force: false, gap: 0.3 });
+  return { b, palette: ['ruby', 'gold', 'emerald', 'sky', 'midnight', 'cream'], plate: { type: 'circle', r: RR * L + 44 } };
 }
 
 // Rose curve r = cos(5t/2): ten overlapping petals, regions coloured by winding depth.
@@ -328,10 +322,10 @@ function wovenRose() {
   alongCurve(b, f, 0, 4 * Math.PI, 12.5, 'round', 10.5, 10.5, () => P.gold, { samples: 24000 });
   fillRings(b, 10, A + 6, 14.5, (r, th) => {
     const [x, y] = polar(r, th), w = Math.abs(winding(poly, x, y));
-    if (w === 0) return r > A - 10 ? null : P.mid;
+    if (w === 0) return P.mid;
     if (w === 1) return r < 150 ? P.teal : P.aqua;
-    return r < 110 ? P.cream : P.mint;
-  }, { limit: inDisc(A + 6), sym: 10, gap: 1.08 });
+    return r < 120 ? P.forest : P.mint;
+  }, { limit: inDisc(A + 6), sym: 10, gap: 1.08, rowGap: 1.09 });
   ring(b, A + 18, 80, 'round', 13, 13, (i) => (i % 2 ? P.gold : P.forest), { force: false, gap: 0.3 });
   return { b, palette: ['midnight', 'teal', 'aqua', 'mint', 'gold', 'cream', 'forest'], plate: { type: 'circle', r: A + 38 } };
 }
@@ -369,7 +363,7 @@ function cuspStar() {
     for (let j = 0; j < 4; j++) if (near(polys[j], x, y, 8.2)) return j % 2 ? P.cry : P.gold;
     let d = -1; for (let j = 0; j < polys.length; j++) { if (pip(polys[j], x, y)) d = j; else break; }
     return seq[d + 1];
-  }, { limit: inDisc(R0 + 4), sym: 16, gap: 1.06 });
+  }, { limit: inDisc(R0 + 4), sym: 16, gap: 1.06, rowGap: 1.09 });
   ring(b, R0 + 18, 80, 'round', 13, 13, (i) => (i % 2 ? P.gold : P.plum), { force: false, gap: 0.3 });
   return { b, palette: ['plum', 'amethyst', 'lavender', 'crystal', 'gold', 'indigo', 'fuchsia'], plate: { type: 'circle', r: R0 + 38 } };
 }
@@ -428,35 +422,30 @@ function squircleNest() {
   return { b, palette: ['midnight', 'indigo', 'cobalt', 'sky', 'ice', 'pearl', 'gold', 'periwinkle'], plate: { type: 'poly', pts: square(H + 24) } };
 }
 
-// H-tree fractal: alternating bars halving every two levels, gem size falling with depth.
+// H-tree fractal on a grid of square gems: bars halve every two levels, coloured by depth.
 function hTree() {
   const b = new Builder();
-  const P = { mid: 0, gold: 1, topaz: 2, copper: 3, coral: 4, aqua: 5, cream: 6, mint: 7 };
-  const L = 340, depth = 7, segs = [], leaves = [];
-  const rec = (x, y, len, lvl) => {
-    if (lvl === depth) { leaves.push([x, y]); return; }
-    const hor = lvl % 2 === 0, dx = hor ? len / 2 : 0, dy = hor ? 0 : len / 2;
-    segs.push([x - dx, y - dy, x + dx, y + dy, lvl]);
-    rec(x - dx, y - dy, len / Math.SQRT2, lvl + 1); rec(x + dx, y + dy, len / Math.SQRT2, lvl + 1);
+  const P = { mid: 0, gold: 1, topaz: 2, coral: 3, aqua: 4, cream: 5, ind: 6 };
+  const n = 43, h = 21, cell = new Map();
+  const mark = (x, y, v) => { const k = x + ',' + y; if (!cell.has(k) || cell.get(k) > v) cell.set(k, v); };
+  const rec = (x, y, half, lvl) => {
+    const hor = lvl % 2 === 0;
+    const ax = hor ? x - half : x, ay = hor ? y : y - half, bx = hor ? x + half : x, by = hor ? y : y + half;
+    for (let t = -half; t <= half; t++) mark(hor ? x + t : x, hor ? y : y + t, lvl);
+    if (lvl === 5) { mark(ax, ay, -1); mark(bx, by, -1); return; }
+    const nh = lvl % 2 === 1 ? half / 2 : half;
+    rec(ax, ay, nh, lvl + 1); rec(bx, by, nh, lvl + 1);
   };
-  rec(0, 0, L, 0);
-  const sz = [19, 17, 16, 15, 14, 13, 12], col = [P.cream, P.gold, P.gold, P.topaz, P.topaz, P.coral, P.coral];
-  b.add('round', 0, 0, 34, 34, 0, P.aqua, { force: true });
-  for (const [x, y] of leaves) b.add('round', x, y, 16, 16, 0, P.aqua, { force: true });
-  for (const [ax, ay, bx, by, lvl] of segs) {
-    const len = Math.hypot(bx - ax, by - ay), n = Math.max(1, Math.round(len / (sz[lvl] + 2.4)));
-    for (let i = 0; i <= n; i++) {
-      const t = i / n, x = ax + (bx - ax) * t, y = ay + (by - ay) * t;
-      b.add(lvl < 3 ? 'square' : 'round', x, y, sz[lvl], sz[lvl], Math.PI / 4, col[lvl], { gap: 0.5 });
-    }
-  }
-  let hx = 0, hy = 0; for (const s of b.s) { hx = Math.max(hx, Math.abs(s.x)); hy = Math.max(hy, Math.abs(s.y)); }
-  hx += 16; hy += 16;
-  for (let x = -hx + 6; x <= hx - 6; x += 13) for (let y = -hy + 6; y <= hy - 6; y += 13)
-    b.add('round', x, y, 10.5, 10.5, 0, P.mid, { gap: 1.0 });
-  const frame = [[-hx - 9, -hy - 9], [hx + 9, -hy - 9], [hx + 9, hy + 9], [-hx - 9, hy + 9]];
-  alongPoly(b, frame, 17, 'square', 13, 13, P.gold, { force: true });
-  return { b, palette: ['midnight', 'gold', 'topaz', 'copper', 'coral', 'aqua', 'cream', 'mint'], plate: { type: 'poly', pts: [[-hx - 26, -hy - 26], [hx + 26, -hy - 26], [hx + 26, hy + 26], [-hx - 26, hy + 26]] } };
+  rec(0, 0, 12, 0);
+  mark(0, 0, -2);
+  const col = { '-2': P.aqua, '-1': P.aqua, 0: P.gold, 1: P.gold, 2: P.cream, 3: P.cream, 4: P.coral, 5: P.coral };
+  grid(b, n, 14.5, 13.2, (i, j, u, v) => {
+    const k = cell.get(u + ',' + v);
+    if (k != null) return col[k];
+    const m = Math.max(Math.abs(u), Math.abs(v));
+    return m === h ? P.ind : P.mid;
+  });
+  return { b, palette: ['midnight', 'gold', 'topaz', 'coral', 'aqua', 'cream', 'indigo'], plate: { type: 'poly', pts: square((n * 14.5) / 2 + 12) } };
 }
 
 // Pascal's triangle mod 3 mirrored into four quadrants; voids shaded by carry count (Kummer).
@@ -486,7 +475,7 @@ function quasicrystal() {
     const [x, y] = polar(r, th);
     let f = 0; for (const [dx, dy] of dirs) f += Math.cos(K * (x * dx + y * dy));
     return f > 3.2 ? P.gold : f > 1.6 ? P.cry : f > 0.4 ? P.ice : f > -0.6 ? P.sky : f > -1.8 ? P.royal : f > -3 ? P.sap : P.mid;
-  }, { limit: inDisc(R), sym: 10 });
+  }, { limit: inDisc(R), sym: 10, rowGap: 1.09 });
   ring(b, R + 14, 80, 'round', 14, 14, (i) => (i % 2 ? P.gold : P.mid), { force: false, gap: 0.3 });
   return { b, palette: ['midnight', 'sapphire', 'royal', 'sky', 'ice', 'gold', 'crystal'], plate: { type: 'circle', r: R + 34 } };
 }
@@ -510,46 +499,55 @@ function lissajousTapestry() {
   return { b, palette: ['ruby', 'garnet', 'cream', 'sand', 'gold', 'midnight', 'rose'], plate: { type: 'poly', pts: square(H + 24) } };
 }
 
-// Sixfold greedy packing of hexagons, teardrops and pearls inside a hexagonal plate.
-function honeycombPearls() {
+// Hexaflake: a hexagon split into seven thirds, three times; leaves are hexagon gems and
+// the holes left at each depth are filled with small pearls shaded by depth.
+function hexaflake() {
   const b = new Builder();
-  const P = { honey: 0, amber: 1, cit: 2, gold: 3, cream: 4, choc: 5, topaz: 6, peach: 7 };
-  const R = 540, hs = (R * SQ3) / 2;
-  const inside = (x, y, r) => Math.abs(y) + r <= hs - 4 && (Math.abs(x) * SQ3) / 2 + Math.abs(y) / 2 + r <= hs - 4;
-  b.add('hexagon', 0, 0, 90 * 0.866, 90, 0, P.cit, { force: true });
-  symPack(b, {
-    k: 6, region: R, seed: 41, inside,
-    sizes: [50, 38, 30, 24, 19.5, 16, 13.5, 11.5, 10, 9, 8.2], tries: [80, 200, 400, 800, 1400, 2200, 3200, 4400, 6000, 8000, 9000],
-    shapeOf: (sz, rand) => {
-      if (sz >= 38) return { shape: 'hexagon', w: sz * 0.866, h: sz };
-      if (sz >= 24) return rand() < 0.4 ? { shape: 'teardrop', w: sz * 0.64, h: sz } : { shape: 'hexagon', w: sz * 0.866, h: sz };
-      return { shape: 'round', w: sz, h: sz };
-    },
-    color: (r, th, sz, shape) => {
-      if (sz >= 50) return P.amber;
-      if (sz >= 38) return P.gold;
-      if (sz >= 24) return shape === 'teardrop' ? P.choc : P.topaz;
-      if (sz >= 19.5) return P.cream;
-      if (sz >= 16) return P.honey;
-      if (sz >= 13.5) return P.cit;
-      if (sz >= 11.5) return P.peach;
-      if (sz >= 10) return P.choc;
-      return r < 320 ? P.cream : P.amber;
-    },
-  });
-  hexPack(b, 9.6, 60, 8.4, (x, y) => (inside(x, y, 5) ? (Math.hypot(x, y) < 320 ? P.cream : P.amber) : null), { force: false, gap: 0.5 });
-  return { b, palette: ['honey', 'amber', 'citrine', 'gold', 'cream', 'chocolate', 'topaz', 'peach'], plate: { type: 'poly', pts: hexPlate(R + 18) } };
+  const P = { forest: 0, em: 1, teal: 2, jade: 3, mint: 4, cream: 5, gold: 6, pearl: 7 };
+  const S0 = 580, DEPTH = 3;
+  const inHex = (x, y, S) => Math.abs(y) <= (S * SQ3) / 2 && (Math.abs(x) * SQ3) / 2 + Math.abs(y) / 2 <= (S * SQ3) / 2;
+  const kids = (S) => [[0, 0], ...[0, 1, 2, 3, 4, 5].map((c) => [((2 * S) / 3) * Math.cos((c * Math.PI) / 3), ((2 * S) / 3) * Math.sin((c * Math.PI) / 3)])];
+  const leafCol = [P.mint, P.pearl, P.gold, P.gold];
+  const rec = (cx, cy, S, lvl, zeros) => {
+    if (lvl === DEPTH) {
+      const hh = 2 * S * 0.93;
+      b.add('hexagon', cx, cy, hh * 0.866, hh, Math.PI / 6, leafCol[zeros], { force: true });
+      return;
+    }
+    kids(S).forEach(([ox, oy], c) => rec(cx + ox, cy + oy, S / 3, lvl + 1, zeros + (c === 0 ? 1 : 0)));
+  };
+  rec(0, 0, S0, 0, 0);
+  const holeLevel = (x, y) => {
+    let cx = 0, cy = 0, S = S0;
+    for (let lvl = 0; lvl < DEPTH; lvl++) {
+      const k = kids(S).find(([ox, oy]) => inHex(x - cx - ox, y - cy - oy, S / 3));
+      if (!k) return lvl;
+      cx += k[0]; cy += k[1]; S /= 3;
+    }
+    return DEPTH;
+  };
+  hexPack(b, 11.6, 60, 10.2, (x, y) => {
+    if (!inHex(x, y, S0 - 7)) return null;
+    const h = holeLevel(x, y);
+    return h === DEPTH ? null : [P.teal, P.em, P.forest][h];
+  }, { force: false, gap: 0.4 });
+  return { b, palette: ['forest', 'emerald', 'teal', 'jade', 'mint', 'cream', 'gold', 'pearl'], plate: { type: 'poly', pts: hexPlate(S0 + 18) } };
 }
 
 // Apollonian gasket by Descartes' theorem; the largest circles hold gaskets of their own.
 function descartesGasket() {
   const b = new Builder();
   const P = { mid: 0, sap: 1, royal: 2, sky: 3, ice: 4, pearl: 5, gold: 6, aqua: 7 };
-  const RMIN = 4.3, BIG = 20;
+  const RMIN = 4.3, BIG = 44;
   const tier = (r) => r >= 40 ? P.gold : r >= 26 ? P.royal : r >= 17 ? P.sky : r >= 11.5 ? P.aqua : r >= 8 ? P.ice : r >= 6 ? P.pearl : P.sap;
   const emit = (c) => {
     const r = dcR(c), x = dcX(c), y = dcY(c);
-    if (r > BIG) { gasket(x, y, r, Math.hypot(x, y) < 1 ? 0 : Math.atan2(x, -y)); return; }
+    if (r > BIG) {
+      const rot = Math.hypot(x, y) < 1 ? 0 : Math.atan2(x, -y), rr = r - 6.5;
+      ring(b, rr, Math.floor((TAU * rr) / 12.4), 'round', 10.6, 10.6, r > 200 ? P.gold : r > 100 ? P.pearl : P.gold, { cx: x, cy: y, start: rot, orient: 'tan' });
+      gasket(x, y, r - 13, rot);
+      return;
+    }
     b.add('round', x, y, r * 2 * 0.93, r * 2 * 0.93, 0, tier(r), { force: true });
   };
   const fill = (c1, c2, c3, d) => {
@@ -577,7 +575,7 @@ function spiralGalaxy() {
   const R = 540, R0 = 64, bb = 1 / Math.tan((21 * Math.PI) / 180);
   const star = (i, row) => { const v = Math.sin(i * 12.9898 + row * 78.233) * 43758.5453; return v - Math.floor(v) < 0.035; };
   b.add('round', 0, 0, 50, 50, 0, P.cream, { force: true });
-  fillRings(b, 26, R0 + 30, 15, (r) => (r < 50 ? P.cit : r < 74 ? P.cream : P.pearl), { sym: 2 });
+  fillRings(b, 26, R0 + 30, 15, (r) => (r < 50 ? P.cit : r < 74 ? P.cream : P.pearl), { sym: 2, rowGap: 1.09 });
   fillRings(b, R0 + 30, R, 15.5, (r, th, row, i, n) => {
     const arm = Math.log(r / R0) * bb;
     let d = ((th - arm) % Math.PI + Math.PI) % Math.PI; if (d > Math.PI / 2) d -= Math.PI;
@@ -588,7 +586,7 @@ function spiralGalaxy() {
     if (dist < 1.3 * w) return lead ? P.tanz : P.ind;
     if (star(i % (n / 2), row)) return P.cream;
     return dist < 1.9 * w ? P.ind : P.mid;
-  }, { limit: inDisc(R), sym: 2 });
+  }, { limit: inDisc(R), sym: 2, rowGap: 1.09 });
   ring(b, R + 14, 120, 'round', 14, 14, (i) => (i % 2 ? P.lav : P.tanz), { force: false, gap: 0.3 });
   return { b, palette: ['midnight', 'indigo', 'tanzanite', 'lavender', 'pearl', 'citrine', 'cream', 'periwinkle'], plate: { type: 'circle', r: R + 34 } };
 }
@@ -598,7 +596,7 @@ export const ENTRIES = [
   { id: 'trefoil-rose', version: 1, name: 'Trefoil Rose', category: 'mandala', difficulty: 'Beginner', build: trefoilRose },
   { id: 'twin-coil', version: 1, name: 'Twin Coil', category: 'mandala', difficulty: 'Beginner', build: twinCoil },
   { id: 'vicsek-cross', version: 1, name: 'Vicsek Cross', category: 'geometric', difficulty: 'Beginner', build: vicsekCross },
-  { id: 'limacon-nest', version: 1, name: 'Limaçon Nest', category: 'geometric', difficulty: 'Medium', build: limaconNest },
+  { id: 'ripple-ribbons', version: 1, name: 'Ripple Ribbons', category: 'geometric', difficulty: 'Medium', build: rippleRibbons },
   { id: 'menger-window', version: 1, name: 'Menger Window', category: 'geometric', difficulty: 'Medium', build: mengerWindow },
   { id: 'koch-crystal', version: 1, name: 'Koch Crystal', category: 'mandala', difficulty: 'Medium', build: kochCrystal },
   { id: 'cassini-ovals', version: 1, name: 'Cassini Ovals', category: 'geometric', difficulty: 'Medium', build: cassiniOvals },
@@ -613,7 +611,7 @@ export const ENTRIES = [
   { id: 'ternary-quilt', version: 1, name: 'Ternary Quilt', category: 'geometric', difficulty: 'Expert', build: ternaryQuilt },
   { id: 'quasicrystal-ripple', version: 1, name: 'Quasicrystal Ripple', category: 'mandala', difficulty: 'Expert', build: quasicrystal },
   { id: 'lissajous-tapestry', version: 1, name: 'Lissajous Tapestry', category: 'geometric', difficulty: 'Master', build: lissajousTapestry },
-  { id: 'honeycomb-pearls', version: 1, name: 'Honeycomb Pearls', category: 'mandala', difficulty: 'Master', build: honeycombPearls },
+  { id: 'hexaflake', version: 1, name: 'Hexaflake', category: 'mandala', difficulty: 'Master', build: hexaflake },
   { id: 'descartes-gasket', version: 1, name: 'Descartes Gasket', category: 'mandala', difficulty: 'Master', build: descartesGasket },
   { id: 'spiral-galaxy', version: 1, name: 'Spiral Galaxy', category: 'mandala', difficulty: 'Master', build: spiralGalaxy },
 ];
