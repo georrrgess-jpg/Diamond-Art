@@ -841,14 +841,14 @@ function leadedQuarry() {
   const b = new Builder();
   const P = { slate: 0, pearl: 1, ice: 2, ruby: 3, sap: 4, gold: 5, em: 6, amber: 7 };
   const hx = 230, hy = 320, bw = 44, ix = hx - bw, iy = hy - bw, inner = rect(ix, iy), lim = inPoly(inner, 0);
-  const ax = 46, ay = 64; // quarry half-diagonals
+  const ax = 50, ay = 72; // quarry diagonals
   // leads: two families of diagonal lines through the inner field
   const leads = [];
   for (let k = -12; k <= 12; k++) {
     for (const sg of [1, -1]) {
       // x / ax + sg * y / ay = k  -> clip to the field
       const pts = [];
-      for (const y of [-iy, iy]) pts.push([(k - (sg * y) / ay) * ax, y]);
+      for (const y of [-iy, iy]) pts.push([(k + 0.5 - (sg * y) / ay) * ax, y]);
       leads.push(pts);
     }
   }
@@ -861,7 +861,8 @@ function leadedQuarry() {
     if (d === 1) return P.ruby;
     if (d === 2) return Math.abs(p) === Math.abs(q) ? P.amber : P.sap;
     if (d === 3) return P.em;
-    if (Math.abs(p) === Math.abs(q) && d % 2 === 0) return P.ice;
+    if (d === 4) return Math.abs(p) === Math.abs(q) ? P.ruby : P.ice;
+    if (p === 0 || q === 0) return P.ice;
     return P.pearl;
   };
   // painted rosettes in the plain quarries
@@ -870,7 +871,6 @@ function leadedQuarry() {
     if (!lim(x, y, 16)) continue;
     const g = glass(x, y);
     b.add('round', x, y, 15, 15, 0, g === P.pearl || g === P.ice ? P.gold : g === P.gold ? P.ruby : P.pearl, { force: true });
-    if (g === P.pearl) ring(b, 13, 4, 'round', 8, 8, P.ice, { cx: x, cy: y, phase: 0.5, force: false, gap: 0.3 });
   }
   hexFill(b, ix, iy, 10.4, 9.2, glass, { limit: lim });
   fillGaps(b, Math.max(ix, iy), 8.4, 5.2, glass, lim, 'round', 2);
