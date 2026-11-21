@@ -100,7 +100,7 @@ function paintInto(target, src) {
 const thumbQueue = [];
 let thumbBusy = false;
 function pumpThumbs() {
-  if (thumbBusy) return;
+  if (thumbBusy || S.cur) return; // never compete with gameplay for the main thread
   const job = thumbQueue.shift(); if (!job) return;
   if (!job.el.isConnected) { pumpThumbs(); return; }
   thumbBusy = true;

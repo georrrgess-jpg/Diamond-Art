@@ -26,15 +26,6 @@ function winding(poly, x, y) {
   return w;
 }
 const sampleCurve = (f, t0, t1, n) => Array.from({ length: n }, (_, i) => f(t0 + ((t1 - t0) * i) / n));
-function shiftAll(b, dx, dy) { for (const s of b.s) { s.x = +(s.x + dx).toFixed(2); s.y = +(s.y + dy).toFixed(2); } }
-function convexHull(pts) {
-  const P = pts.slice().sort((a, c) => a[0] - c[0] || a[1] - c[1]);
-  const cr = (o, a, c) => (a[0] - o[0]) * (c[1] - o[1]) - (a[1] - o[1]) * (c[0] - o[0]);
-  const lo = [], hi = [];
-  for (const p of P) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
-  for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; while (hi.length >= 2 && cr(hi[hi.length - 2], hi[hi.length - 1], p) <= 0) hi.pop(); hi.push(p); }
-  return lo.slice(0, -1).concat(hi.slice(0, -1));
-}
 // square-gem grid of n x n cells, fn(i, j, u, v) -> palette index or null (u, v centred cell coords)
 function grid(b, n, pitch, size, fn) {
   for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
@@ -98,22 +89,23 @@ function dcInner(a, c, e) {
 }
 
 // ---------------------------------------------------------------- Beginner
-// Three-petal rose (r = cos 3t) in bold gems: outlined petals on a cream ground.
-function trefoilRose() {
+// Five-petal rose r = cos 5t: gem-outlined petals, each holding a marquise and a pearl,
+// with gold teardrops between the petals.
+function cinquefoilRose() {
   const b = new Builder();
-  const P = { garnet: 0, ruby: 1, rose: 2, blush: 3, gold: 4, cream: 5 };
-  const A = 232;
-  b.add('round', 0, 0, 44, 44, 0, P.ruby, { force: true });
-  fillRings(b, 22, 236, 23, (r, th) => {
-    const c3 = Math.cos(3 * th), lim = c3 > 0 ? A * Math.sqrt(c3) : 0;
-    if (lim > 0 && r < lim + 4) {
-      if (lim - r < 25) return P.garnet;
-      return r < 72 ? P.gold : r < lim - 62 ? P.rose : P.blush;
-    }
-    return r > 206 ? P.ruby : P.cream;
-  }, { limit: inDisc(238), sym: 6, rowGap: 1.09 });
-  ring(b, 256, 44, 'round', 20, 20, (i) => (i % 2 ? P.garnet : P.gold), { force: false, gap: 0.4 });
-  return { b, palette: ['garnet', 'ruby', 'rose', 'blush', 'gold', 'cream'], plate: { type: 'circle', r: 280 } };
+  const P = { garnet: 0, ruby: 1, rose: 2, blush: 3, gold: 4, pearl: 5 };
+  const A = 236;
+  b.add('round', 0, 0, 46, 46, 0, P.gold, { force: true });
+  ring(b, 112, 5, 'marquise', 30, 92, P.rose);
+  ring(b, 186, 5, 'round', 26, 26, P.rose);
+  ring(b, 54, 5, 'round', 16, 16, P.ruby, { force: false, gap: 0.4 });
+  alongCurve(b, (t) => polar(A * Math.cos(5 * t), t), 0, Math.PI, 18, 'round', 15.5, 15.5, () => P.garnet, { samples: 8000 });
+  ring(b, 148, 5, 'teardrop', 30, 54, P.gold, { phase: 0.5 });
+  ring(b, 206, 5, 'round', 20, 20, P.ruby, { phase: 0.5 });
+  ring(b, 92, 5, 'round', 15, 15, P.pearl, { phase: 0.5, force: false, gap: 0.4 });
+  ring(b, 228, 10, 'round', 15, 15, P.pearl, { phase: 0.25, force: false, gap: 0.4 });
+  ring(b, 262, 40, 'round', 22, 22, (i) => (i % 2 ? P.garnet : P.gold), { force: false, gap: 0.4 });
+  return { b, palette: ['garnet', 'ruby', 'rose', 'blush', 'gold', 'pearl'], plate: { type: 'circle', r: 286 } };
 }
 
 // Two interleaved Archimedean spiral arms of large round gems.
@@ -121,7 +113,7 @@ function twinCoil() {
   const b = new Builder();
   const P = { cob: 0, royal: 1, sky: 2, gold: 3, cit: 4, cream: 5 };
   const a = 9.6, tMax = 228 / a;
-  b.add('round', 0, 0, 44, 44, 0, P.cream, { force: true });
+  b.add('round', 0, 0, 44, 44, 0, P.gold, { force: true });
   for (const arm of [0, 1]) {
     alongCurve(b, (t) => polar(a * t, t + arm * Math.PI), 3.3, tMax, 28, 'round', 25, 25, (t) => {
       const r = a * t;
@@ -187,7 +179,7 @@ function mengerWindow() {
   // central hole: a 3 x 3 echo
   for (let u = -1; u <= 1; u++) for (let v = -1; v <= 1; v++) {
     if (u === 0 && v === 0) b.add('round', 0, 0, 44, 44, 0, P.gold, { force: true });
-    else b.add('square', u * 48, v * 48, 44, 44, 0, (u + v) % 2 ? P.mint : P.forest, { force: true });
+    else b.add('square', u * 48, v * 48, 44, 44, 0, P.forest, { force: true });
   }
   return { b, palette: ['forest', 'teal', 'jade', 'mint', 'cream', 'gold'], plate: { type: 'poly', pts: square((n * pitch) / 2 + 12) } };
 }
@@ -217,11 +209,11 @@ function kochCrystal() {
     const z = -q - r; if (Math.abs(z) > N) continue;
     const x = s * SQ3 * (q + r / 2), y = s * 1.5 * r, d = Math.max(Math.abs(q), Math.abs(r), Math.abs(z));
     let p;
-    if (pip(K0, x, y) && pip(K0b, x, y)) p = d <= 1 ? P.aqua : d % 3 === 2 ? P.sky : P.cry;
+    if (pip(K0, x, y) && pip(K0b, x, y)) p = d % 3 === 0 ? P.cry : P.aqua;
     else if (pip(K[1], x, y)) p = P.ice;
     else if (pip(K[2], x, y)) p = P.sky;
-    else if (pip(K[3], x, y)) p = P.sap;
-    else p = d === N ? P.aqua : P.mid;
+    else if (pip(K[3], x, y)) p = P.sky;
+    else p = d === N ? P.sap : P.mid;
     b.add('hexagon', x, y, gw, gh, 0, p, { force: true });
   }
   return { b, palette: ['midnight', 'sapphire', 'sky', 'ice', 'crystal', 'aqua'], plate: { type: 'poly', pts: hexPlate(s * SQ3 * N + s * 1.9) } };
@@ -320,12 +312,14 @@ function wovenRose() {
   const poly = sampleCurve(f, 0, 4 * Math.PI, 3000);
   b.add('round', 0, 0, 22, 22, 0, P.gold, { force: true });
   alongCurve(b, f, 0, 4 * Math.PI, 12.5, 'round', 10.5, 10.5, () => P.gold, { samples: 24000 });
-  fillRings(b, 10, A + 6, 14.5, (r, th) => {
+  const col = (r, th) => {
     const [x, y] = polar(r, th), w = Math.abs(winding(poly, x, y));
     if (w === 0) return P.mid;
     if (w === 1) return r < 150 ? P.teal : P.aqua;
     return r < 120 ? P.forest : P.mint;
-  }, { limit: inDisc(A + 6), sym: 10, gap: 1.08, rowGap: 1.09 });
+  };
+  fillRings(b, 10, A + 6, 15, col, { limit: inDisc(A + 6), sym: 10, gap: 1.08, rowGap: 1.09 });
+  fillRings(b, 10, A + 6, 9.5, col, { limit: inDisc(A + 6), sym: 10, gap: 1.1, rowGap: 1.1 });
   ring(b, A + 18, 80, 'round', 13, 13, (i) => (i % 2 ? P.gold : P.forest), { force: false, gap: 0.3 });
   return { b, palette: ['midnight', 'teal', 'aqua', 'mint', 'gold', 'cream', 'forest'], plate: { type: 'circle', r: A + 38 } };
 }
@@ -352,18 +346,19 @@ function cuspStar() {
   const b = new Builder();
   const P = { plum: 0, am: 1, lav: 2, cry: 3, gold: 4, ind: 5, fu: 6 };
   const k = 8, hypo = (R, ph) => (t) => { const r = R / k; const x = (R - r) * Math.cos(t) + r * Math.cos((k - 1) * t), y = (R - r) * Math.sin(t) - r * Math.sin((k - 1) * t); const c = Math.cos(ph), s = Math.sin(ph); return [x * c - y * s, x * s + y * c]; };
-  const R0 = 316, levels = [];
+  const R0 = 304, levels = [];
   for (let j = 0; j < 7; j++) levels.push({ R: R0 * 0.75 ** j, ph: -Math.PI / 2 + (j % 2) * (Math.PI / k) });
   const polys = levels.map(({ R, ph }) => sampleCurve(hypo(R, ph), 0, TAU, 1600));
   b.add('round', 0, 0, 36, 36, 0, P.gold, { force: true });
-  const near = (poly, x, y, e) => { for (const [px, py] of poly) if (Math.abs(px - x) < e && Math.abs(py - y) < e && Math.hypot(px - x, py - y) < e) return true; return false; };
+  levels.slice(0, 4).forEach(({ R, ph }, j) => alongCurve(b, hypo(R, ph), 0, TAU, 12.5, 'round', 10.5, 10.5, () => (j % 2 ? P.cry : P.gold), { samples: 8000 }));
   const seq = [P.ind, P.plum, P.am, P.fu, P.lav, P.am, P.plum, P.lav];
-  fillRings(b, 20, R0 + 4, 16, (r, th) => {
+  const col = (r, th) => {
     const [x, y] = polar(r, th);
-    for (let j = 0; j < 4; j++) if (near(polys[j], x, y, 8.2)) return j % 2 ? P.cry : P.gold;
     let d = -1; for (let j = 0; j < polys.length; j++) { if (pip(polys[j], x, y)) d = j; else break; }
     return seq[d + 1];
-  }, { limit: inDisc(R0 + 4), sym: 16, gap: 1.06, rowGap: 1.09 });
+  };
+  fillRings(b, 20, R0 + 4, 17, col, { limit: inDisc(R0 + 4), sym: 16, gap: 1.06, rowGap: 1.09 });
+  fillRings(b, 20, R0 + 4, 9.5, col, { limit: inDisc(R0 + 4), sym: 16, gap: 1.1, rowGap: 1.1 });
   ring(b, R0 + 18, 80, 'round', 13, 13, (i) => (i % 2 ? P.gold : P.plum), { force: false, gap: 0.3 });
   return { b, palette: ['plum', 'amethyst', 'lavender', 'crystal', 'gold', 'indigo', 'fuchsia'], plate: { type: 'circle', r: R0 + 38 } };
 }
@@ -381,11 +376,11 @@ function hilbertMeander() {
     }
     return [x, y];
   };
-  const M = 33, cell = new Map(), seq = [P.aqua, P.ice, P.sky, P.gold];
+  const M = 33, cell = new Map(), seq = [P.aqua, P.sky, P.ice, P.gold];
   let prev = null;
   for (let d = 0; d < 256; d++) {
     const [hx, hy] = d2xy(16, d), gx = 2 * hx + 1, gy = 2 * hy + 1;
-    const p = seq[Math.floor(d / 16) % 4];
+    const p = seq[Math.floor(Math.min(d, 255 - d) / 32)];
     cell.set(gx + ',' + gy, p);
     if (prev) cell.set((prev[0] + gx) / 2 + ',' + (prev[1] + gy) / 2, p);
     prev = [gx, gy];
@@ -487,7 +482,7 @@ function lissajousTapestry() {
   const P = { ruby: 0, garnet: 1, cream: 2, sand: 3, gold: 4, mid: 5, rose: 6 };
   const A = 296, H = 318, f = (t) => [A * Math.sin(5 * t + Math.PI / 2), A * Math.sin(4 * t)];
   const poly = sampleCurve(f, 0, TAU, 1400);
-  alongCurve(b, f, 0, TAU, 12.5, 'round', 10.5, 10.5, () => P.gold, { samples: 30000 });
+  alongCurve(b, f, 0, TAU, 12.5, 'round', 10.5, 10.5, () => P.gold, { samples: 14000 });
   hexPack(b, 12.4, 30, 11, (x, y) => {
     if (Math.abs(x) > H - 6 || Math.abs(y) > H - 6) return null;
     const odd = winding(poly, x, y) & 1, m = Math.max(Math.abs(x), Math.abs(y));
@@ -593,7 +588,7 @@ function spiralGalaxy() {
 
 // ---------------------------------------------------------------- register
 export const ENTRIES = [
-  { id: 'trefoil-rose', version: 1, name: 'Trefoil Rose', category: 'mandala', difficulty: 'Beginner', build: trefoilRose },
+  { id: 'cinquefoil-rose', version: 1, name: 'Cinquefoil Rose', category: 'mandala', difficulty: 'Beginner', build: cinquefoilRose },
   { id: 'twin-coil', version: 1, name: 'Twin Coil', category: 'mandala', difficulty: 'Beginner', build: twinCoil },
   { id: 'vicsek-cross', version: 1, name: 'Vicsek Cross', category: 'geometric', difficulty: 'Beginner', build: vicsekCross },
   { id: 'ripple-ribbons', version: 1, name: 'Ripple Ribbons', category: 'geometric', difficulty: 'Medium', build: rippleRibbons },
