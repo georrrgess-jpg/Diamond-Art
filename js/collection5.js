@@ -103,16 +103,16 @@ function trefoilRose() {
   const b = new Builder();
   const P = { garnet: 0, ruby: 1, rose: 2, blush: 3, gold: 4, cream: 5 };
   const A = 232;
-  b.add('round', 0, 0, 44, 44, 0, P.gold, { force: true });
+  b.add('round', 0, 0, 44, 44, 0, P.ruby, { force: true });
   fillRings(b, 22, 236, 23, (r, th) => {
-    const lim = A * Math.cos(3 * th);
+    const c3 = Math.cos(3 * th), lim = c3 > 0 ? A * Math.sqrt(c3) : 0;
     if (lim > 0 && r < lim + 4) {
-      if (lim - r < 26) return P.garnet;
-      return r < 70 ? P.ruby : P.rose;
+      if (lim - r < 25) return P.garnet;
+      return r < 72 ? P.gold : r < lim - 62 ? P.rose : P.blush;
     }
-    return fold(th, 3) > 0.8 && r > 100 ? P.gold : P.cream;
+    return r > 206 ? P.ruby : P.cream;
   }, { limit: inDisc(238), sym: 6, rowGap: 1.09 });
-  ring(b, 256, 44, 'round', 20, 20, (i) => (i % 2 ? P.ruby : P.gold), { force: false, gap: 0.4 });
+  ring(b, 256, 44, 'round', 20, 20, (i) => (i % 2 ? P.garnet : P.gold), { force: false, gap: 0.4 });
   return { b, palette: ['garnet', 'ruby', 'rose', 'blush', 'gold', 'cream'], plate: { type: 'circle', r: 280 } };
 }
 
