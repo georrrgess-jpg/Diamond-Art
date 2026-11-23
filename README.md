@@ -19,7 +19,8 @@ To build the single-file version (used for the published artifact), run `python3
 | | Desktop | Touch |
 |---|---|---|
 | Place a gem | Click | Tap |
-| Place several | Click and drag | Drag with one finger |
+| Place several | Click and drag starting on a lit spot | Drag starting on a lit spot |
+| Move the board | Drag empty space, Space + drag, middle or right drag | Drag with one finger anywhere else (toggle in settings), two fingers |
 | Pick a spot's gem number | | Press and hold the spot |
 | Undo last stroke | `Ctrl`/`Cmd` + `Z`, toolbar | Toolbar |
 | Zoom | Mouse wheel / trackpad pinch, `+` `-`, double-click empty space, toolbar | Pinch, double-tap, toolbar |
@@ -32,6 +33,7 @@ To build the single-file version (used for the published artifact), run `python3
 
 - 150 geometric artworks in five levels (Beginner to Master, about 100 to 3,750 gems each), with a daily featured pick, search, level sections, favorites and a continue rail.
 - 8 themes (menus plus the board's backdrop, plate and sockets).
+- My Collection: finished artworks are saved (in the browser and, for signed-in claude.ai viewers, in the artifact's private per-user storage at `data/users/<id>/collection`), can be viewed, exported and replayed; replays keep the finished copy and count repeat finishes.
 - Autosave, undo, guide arrows, a minimap when zoomed in, a first-run guide, play-time tracking, a daily play streak and image export.
 
 ## Adding artworks

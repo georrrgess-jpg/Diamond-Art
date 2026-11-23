@@ -295,3 +295,18 @@ button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent
 .pal.gone { display: none; }
 @media (max-width: 600px) and (orientation: portrait) { .tools { gap: 2px; padding: 5px; } .tool { width: 40px; height: 40px; } }
 @media (max-width: 360px) and (orientation: portrait) { .tool { width: 36px; height: 36px; } .tool-sep { margin: 0 1px; } }
+
+/* ================= collection ================= */
+#collection { overflow-y: auto; background: var(--gallery-bg); background-attachment: local; }
+.col-head { display: flex; align-items: center; gap: 10px; padding: 4px 0 20px; }
+.col-title { font-family: var(--display); font-weight: 500; font-size: 32px; margin: 0; line-height: 1.1; }
+.col-sub { margin: 4px 0 0; color: var(--ink-2); font-size: 14px; }
+button.stat { font: inherit; color: inherit; text-align: left; cursor: pointer; }
+@media (hover: hover) { button.stat:hover { border-color: var(--gold); } }
+.theme-btn svg { width: 18px; height: 18px; }
+.card.saved .info .sub { margin-top: 3px; color: var(--ink-3); }
+.saved-actions { display: flex; gap: 6px; padding: 0 12px 12px; }
+.saved-actions .btn { flex: 1; }
+.btn.small { padding: 8px 10px; min-height: 38px; font-size: 13.5px; white-space: nowrap; }
+.view-art { border-radius: 18px; overflow: hidden; margin: 6px 0 14px; }
+@media (max-width: 420px) { .theme-btn span { display: none; } }

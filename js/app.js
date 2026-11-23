@@ -45,7 +45,7 @@ const fmtTime = (ms) => { const m = Math.round(ms / 60000); return m < 1 ? 'unde
 
 // ---------------------------------------------------------------- state
 const S = {
-  settings: { sound: true, autoAdvance: true, reduced: null, vibe: true, coached: false, theme: 'ivory', hideDone: true, streak: 0, lastDay: '' },
+  settings: { sound: true, autoAdvance: true, reduced: null, vibe: true, coached: false, theme: 'ivory', hideDone: true, dragPans: true, streak: 0, lastDay: '' },
   favorites: new Set(),
   summary: {}, // artId -> {count,total,completed,updated,time}
   filters: { status: 'all', diff: 'all', cat: 'all', q: '' },
@@ -77,13 +77,13 @@ window.addEventListener('pagehide', flushSave);
 
 // ---------------------------------------------------------------- gallery
 const thumbCache = new Map(); // key -> canvas (bounded below)
-function thumbKey(id) { const s = S.summary[id]; return s && s.count && !s.completed ? `${id}:${s.count}` : `${id}:full`; }
-async function thumbFor(id, size) {
-  const key = thumbKey(id) + ':' + size;
+function thumbKey(id, full) { const s = S.summary[id]; return !full && s && s.count && !s.completed ? `${id}:${s.count}` : `${id}:full`; }
+async function thumbFor(id, size, full = false) {
+  const key = thumbKey(id, full) + ':' + size;
   if (thumbCache.has(key)) return thumbCache.get(key);
   const art = getArtwork(id), s = S.summary[id];
   let filled = null;
-  if (s && s.count && !s.completed) {
+  if (!full && s && s.count && !s.completed) {
     const rec = store.sanitizeProgress(await store.get(store.progressKey(id)), art);
     filled = rec ? rec.filled : null;
   }
@@ -107,7 +107,7 @@ function pumpThumbs() {
   const job = thumbQueue.shift(); if (!job) return;
   if (!job.el.isConnected) { pumpThumbs(); return; }
   thumbBusy = true;
-  thumbFor(job.id, job.size).then((c) => { if (job.el.isConnected) paintInto(job.el, c); }).catch(() => {}).finally(() => {
+  thumbFor(job.id, job.size, job.full).then((c) => { if (job.el.isConnected) paintInto(job.el, c); }).catch(() => {}).finally(() => {
     thumbBusy = false;
     setTimeout(pumpThumbs, 0);
   });
@@ -115,16 +115,148 @@ function pumpThumbs() {
 const io = new IntersectionObserver((entries) => {
   for (const e of entries) if (e.isIntersecting) {
     io.unobserve(e.target);
-    thumbQueue.push({ el: e.target, id: e.target.dataset.id, size: +e.target.dataset.size || 300 });
+    thumbQueue.push({ el: e.target, id: e.target.dataset.id, size: +e.target.dataset.size || 300, full: !!e.target.dataset.full });
   }
   pumpThumbs();
 }, { rootMargin: '400px' });
 
 function statusOf(id) {
   const s = S.summary[id];
-  if (!s) return 'new';
-  if (s.completed) return 'done';
-  return s.count ? 'progress' : 'new';
+  if (s && s.count && !s.completed) return 'progress';
+  if (SAVED.has(id) || (s && s.completed)) return 'done';
+  return 'new';
+}
+const isSaved = (id) => SAVED.has(id);
+
+// ---------------------------------------------------------------- saved collection
+// Finished artworks are kept in a collection: in this browser (IndexedDB) and,
+// when the viewer is signed in to claude.ai, in their private artifact storage
+// (db: data/users/<id>/collection) so it survives cleared site data and devices.
+const SAVED = new Map(); // id -> {first, last, times, time}
+let cloudRef = null;
+const savedObj = () => Object.fromEntries(SAVED);
+function mergeSaved(obj) {
+  let changed = false;
+  for (const [id, e] of Object.entries(obj || {})) {
+    if (!e || typeof e !== 'object' || !CATALOG.some((m) => m.id === id)) continue;
+    const n = { first: +e.first || Date.now(), last: +e.last || +e.first || Date.now(), times: Math.max(1, Math.floor(+e.times) || 1), time: Math.max(0, +e.time || 0) };
+    const cur = SAVED.get(id);
+    const m = cur ? { first: Math.min(cur.first, n.first), last: Math.max(cur.last, n.last), times: Math.max(cur.times, n.times), time: cur.time || n.time } : n;
+    if (!cur || JSON.stringify(m) !== JSON.stringify(cur)) { SAVED.set(id, m); changed = true; }
+  }
+  return changed;
+}
+let cloudT;
+function persistSaved() {
+  store.set('saved-collection', { schema: 1, items: savedObj() });
+  if (!cloudRef) return;
+  clearTimeout(cloudT);
+  cloudT = setTimeout(() => cloudRef.set({ schema: 1, items: savedObj(), updated: Date.now() }).catch(() => { cloudRef = null; updateSyncNote(); }), 300);
+}
+function addToCollection(c) {
+  const id = c.art.id, now = Date.now(), cur = SAVED.get(id);
+  SAVED.set(id, cur ? { ...cur, last: now, times: cur.times + 1, time: Math.round(c.time) || cur.time } : { first: now, last: now, times: 1, time: Math.round(c.time) });
+  persistSaved();
+}
+async function connectCloud() {
+  try {
+    const cl = window.claude;
+    if (!cl || typeof cl.use !== 'function') return;
+    const [db, user] = await Promise.all([cl.use('db'), cl.use('user')]);
+    if (!db || !user) return;
+    const uid = await user.id();
+    if (!uid) return;
+    const ref = db.doc(`data/users/${uid}/collection`);
+    const snap = await ref.get();
+    const remote = snap && snap.exists ? (snap.data() || {}).items : null;
+    const gained = mergeSaved(remote);
+    cloudRef = ref;
+    if (JSON.stringify(savedObj()) !== JSON.stringify(remote || {})) {
+      await ref.set({ schema: 1, items: savedObj(), updated: Date.now() }).catch(() => { cloudRef = null; });
+    }
+    if (gained) store.set('saved-collection', { schema: 1, items: savedObj() });
+    updateSyncNote();
+    if (gained) { if (!$('#gallery').hidden) renderGallery(); if (!$('#collection').hidden) renderCollection(); }
+  } catch (err) { console.warn('Lustra: cloud collection unavailable', err); }
+}
+function updateSyncNote() {
+  const el = $('#col-sync'); if (!el) return;
+  el.textContent = cloudRef ? 'Saved to your Claude account, on every device you use' : 'Saved in this browser';
+}
+const fmtDate = (t) => new Date(t).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+
+function renderCollection() {
+  const grid = $('#col-grid'); grid.innerHTML = '';
+  const items = [...SAVED.entries()].filter(([id]) => CATALOG.some((m) => m.id === id)).sort((a, b) => b[1].last - a[1].last);
+  $('#col-count').textContent = items.length ? `${items.length} of ${CATALOG.length} artworks finished` : 'Nothing here yet';
+  $('#col-empty').hidden = items.length > 0;
+  updateSyncNote();
+  for (const [id, e] of items) {
+    const m = CATALOG.find((c) => c.id === id), meta = metaOf(m), s = S.summary[id];
+    const replaying = s && s.count && !s.completed;
+    const card = document.createElement('article');
+    card.className = 'card saved';
+    card.innerHTML = `
+      <button class="open" aria-label="View ${m.name}">
+        <div class="thumb loading" data-id="${id}" data-full="1"></div>
+        <span class="tag done">${ICON.check} Finished${e.times > 1 ? ` ×${e.times}` : ''}</span>
+        <div class="info">
+          <h3 class="name">${m.name}</h3>
+          <div class="meta"><i class="pips" data-pips="${PIPS(m.difficulty)}"></i><span>${fmtN(meta.n)} gems</span></div>
+          <div class="meta sub">${fmtDate(e.last)}${e.time > 30000 ? ` · ${fmtTime(e.time)}` : ''}</div>
+        </div>
+      </button>
+      <div class="saved-actions">
+        <button class="btn small" data-act="view">View</button>
+        <button class="btn small primary" data-act="replay">${replaying ? `Resume ${Math.floor((s.count / meta.n) * 100)}%` : 'Replay'}</button>
+      </div>`;
+    card.querySelector('.open').onclick = () => viewSaved(id);
+    card.querySelector('[data-act="view"]').onclick = () => viewSaved(id);
+    card.querySelector('[data-act="replay"]').onclick = () => (replaying ? openArt(id) : replay(id));
+    grid.appendChild(card);
+    io.observe(card.querySelector('.thumb'));
+  }
+}
+function openCollection() { renderCollection(); show('collection'); $('#col-back').focus(); }
+
+// Full-size look at a finished piece, independent of any replay in progress.
+function viewSaved(id) {
+  const m = CATALOG.find((c) => c.id === id), art = getArtwork(id), e = SAVED.get(id);
+  const size = Math.min(560, Math.max(240, Math.min(innerWidth, innerHeight) - 120));
+  openModal(`
+    <div class="eyebrow">From your collection</div>
+    <h3 id="modal-title">${m.name}</h3>
+    <div class="view-art" style="background:var(--thumb-bg)"></div>
+    <div class="done-stats">
+      <div><b>${fmtN(art.sockets.length)}</b><span>gems</span></div>
+      <div><b>${e.times}</b><span>${e.times === 1 ? 'time finished' : 'times finished'}</span></div>
+      ${e.time > 30000 ? `<div><b>${fmtTime(e.time)}</b><span>of play</span></div>` : `<div><b>${fmtDate(e.first)}</b><span>first finished</span></div>`}
+    </div>
+    <div class="actions">
+      <button class="btn" data-a="close">Close</button>
+      <button class="btn" data-a="image">Save image</button>
+      <button class="btn primary" data-a="replay">Play again</button>
+    </div>`, {
+    close: closeModal,
+    image: () => exportImage(art, new Uint8Array(art.sockets.length).fill(1), () => viewSaved(id)),
+    replay: () => replay(id),
+  });
+  const box = document.querySelector('#modal .view-art');
+  const cv = renderThumb(art, size, null);
+  cv.style.width = '100%'; cv.style.height = 'auto'; cv.style.display = 'block';
+  box.appendChild(cv);
+  document.querySelector('#modal .sheet').classList.add('wide');
+}
+
+// Start a fresh run of a piece; its finished copy stays in the collection.
+async function replay(id) {
+  closeModal();
+  if (S.cur) { flushSave(); board.unload(); S.cur = null; }
+  const m = CATALOG.find((c) => c.id === id);
+  await store.set(store.progressKey(id), { schema: store.SCHEMA, art: id, version: m.version, mode: 'number', filled: [], camera: null, sel: 0, updated: Date.now(), completed: false, time: 0 });
+  S.summary[id] = { count: 0, total: metaOf(m).n, completed: false, updated: Date.now(), time: 0 };
+  await openArt(id);
+  toast('New run started. Your finished copy stays in your collection.');
 }
 
 // Card metadata without generating the artwork (precomputed; falls back to generating).
@@ -146,7 +278,7 @@ function cardHTML(m) {
   return `
     <button class="open" aria-label="${label}">
       <div class="thumb loading" data-id="${m.id}"></div>
-      ${st === 'done' ? `<span class="tag done">${ICON.check} Finished</span>` : st === 'progress' ? `<span class="tag">${pct}% placed</span>` : ''}
+      ${st === 'done' ? `<span class="tag done">${ICON.check} Finished${(SAVED.get(m.id) || {}).times > 1 ? ` ×${SAVED.get(m.id).times}` : ''}</span>` : st === 'progress' ? `<span class="tag">${isSaved(m.id) ? 'Replay · ' : ''}${pct}% placed</span>` : ''}
       <div class="info">
         <h3 class="name">${m.name}</h3>
         <div class="meta"><i class="pips" data-pips="${PIPS(m.difficulty)}"></i><span>${fmtN(n)} gems</span></div>
@@ -163,7 +295,7 @@ function renderGallery() {
   const q = f.q.trim().toLowerCase();
   const list = CATALOG.filter((m) =>
     (f.cat === 'all' || m.category === f.cat) && (f.diff === 'all' || m.difficulty === f.diff) &&
-    (f.status === 'all' || (f.status === 'fav' ? S.favorites.has(m.id) : statusOf(m.id) === f.status)) &&
+    (f.status === 'all' || (f.status === 'fav' ? S.favorites.has(m.id) : f.status === 'done' ? isSaved(m.id) : statusOf(m.id) === f.status)) &&
     (!q || m.name.toLowerCase().includes(q)));
   const browsing = f.diff === 'all' && f.status === 'all' && !q;
   const perRow = Math.max(2, Math.floor((box.clientWidth || 1000) / 248));
@@ -174,7 +306,7 @@ function renderGallery() {
     const limit = perRow * 2;
     const collapsed = browsing && all.length > limit + 1 && !S.expanded.has(lv);
     const items = collapsed ? all.slice(0, limit) : all;
-    const done = all.filter((m) => statusOf(m.id) === 'done').length;
+    const done = all.filter((m) => isSaved(m.id)).length;
     const sec = document.createElement('section');
     sec.className = 'level';
     sec.innerHTML = `<div class="level-head"><h2>${lv}</h2><i class="pips" data-pips="${PIPS(lv)}"></i><p>${LEVEL_INFO[lv]}</p><span class="level-count">${done}/${all.length} finished</span></div><div class="grid"></div>`;
@@ -239,7 +371,7 @@ function markPlayedToday() {
 }
 
 function renderStats() {
-  const done = Object.values(S.summary).filter((s) => s.completed).length;
+  const done = [...SAVED.keys()].filter((id) => CATALOG.some((m) => m.id === id)).length;
   const gems = Object.values(S.summary).reduce((a, s) => a + (s.count || 0), 0);
   $('#st-done').textContent = `${done} / ${CATALOG.length}`;
   $('#st-gems').textContent = fmtN(gems);
@@ -439,6 +571,7 @@ async function openArt(id) {
   document.title = `${art.name} · Lustra`;
   show('play');
   board.reduced = reducedMotion();
+  board.dragPans = S.settings.dragPans;
   setMode('paint');
   mm.size = 0; mm.box.hidden = true;
   board.load(art, filled, sel, rec && rec.camera);
@@ -458,7 +591,7 @@ function leave() {
   renderGallery();
 }
 function show(which) {
-  for (const id of ['gallery', 'play']) {
+  for (const id of ['gallery', 'play', 'collection']) {
     const el = $('#' + id), on = id === which;
     if (on && el.hidden && !reducedMotion()) { el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); }
     el.hidden = !on;
@@ -488,6 +621,7 @@ function finish() {
   const c = S.cur;
   updateUndo();
   c.completed = true; c.dirty = true; flushSave();
+  addToCollection(c);
   setTimeout(() => {
     if (S.cur !== c) return;
     sfx.complete();
@@ -501,7 +635,7 @@ function completionPanel(revisit) {
   const idx = CATALOG.findIndex((m) => m.id === c.art.id);
   const next = CATALOG.slice(idx + 1).concat(CATALOG.slice(0, idx)).find((m) => statusOf(m.id) !== 'done');
   openModal(`
-    <div class="eyebrow">${revisit ? 'In your collection' : 'Artwork complete'}</div>
+    <div class="eyebrow">${revisit ? 'In your collection' : 'Artwork complete · saved to your collection'}</div>
     <h3 id="modal-title">${c.art.name}</h3>
     <div class="done-stats">
       <div><b>${fmtN(c.art.sockets.length)}</b><span>gems placed</span></div>
@@ -511,26 +645,30 @@ function completionPanel(revisit) {
     <div class="actions">
       <button class="btn" data-a="admire">Admire</button>
       <button class="btn" data-a="export">Save image</button>
-      <button class="btn" data-a="gallery">Gallery</button>
+      <button class="btn" data-a="replay">Play again</button>
+      <button class="btn" data-a="collection">My collection</button>
       ${next ? `<button class="btn primary" data-a="next">Next: ${next.name}</button>` : ''}
     </div>`, {
-    admire: closeModal, export: doExport, gallery: leave,
+    admire: closeModal, export: doExport, replay: () => replay(c.art.id),
+    collection: () => { closeModal(); leave(); openCollection(); },
     next: () => { closeModal(); leave(); openArt(next.id); },
   }, true);
 }
 
 function doExport() {
   const c = S.cur; if (!c) return;
+  exportImage(c.art, c.filled, c.completed ? () => completionPanel(true) : closeModal);
+}
+function exportImage(art, filled, back) {
   toast('Preparing image…');
   setTimeout(() => {
-    const cv = exportPNG(c.art, c.filled, 2000);
+    const cv = exportPNG(art, filled, 2000);
     cv.toBlob((blob) => {
       if (!blob) { toast('Could not create the image'); return; }
       const url = URL.createObjectURL(blob);
-      const back = c.completed ? () => completionPanel(true) : closeModal;
       openModal(`
-        <h3 id="modal-title">${c.art.name}</h3>
-        <img class="export-img" src="${url}" alt="${c.art.name}, rendered at 2000 by 2000 pixels">
+        <h3 id="modal-title">${art.name}</h3>
+        <img class="export-img" src="${url}" alt="${art.name}, rendered at 2000 by 2000 pixels">
         <p>Press and hold the image (or right-click it) and choose Save Image.</p>
         <div class="actions"><button class="btn primary" data-a="done">Done</button></div>`, {
         done: () => { URL.revokeObjectURL(url); back(); },
@@ -574,6 +712,7 @@ function openMenu() {
   $('#opt-vibe').checked = S.settings.vibe;
   $('#opt-auto').checked = S.settings.autoAdvance;
   $('#opt-hide').checked = S.settings.hideDone;
+  $('#opt-drag').checked = S.settings.dragPans;
   $('#opt-motion').checked = reducedMotion();
   $('#opt-sound').focus();
 }
@@ -583,6 +722,7 @@ document.addEventListener('pointerdown', (e) => { if (!$('#menu').hidden && !e.t
 $('#opt-sound').onchange = (e) => { S.settings.sound = e.target.checked; sfx.setSound(S.settings.sound); saveSettings(); };
 $('#opt-vibe').onchange = (e) => { S.settings.vibe = e.target.checked; saveSettings(); };
 $('#opt-auto').onchange = (e) => { S.settings.autoAdvance = e.target.checked; saveSettings(); };
+$('#opt-drag').onchange = (e) => { S.settings.dragPans = e.target.checked; board.dragPans = e.target.checked; saveSettings(); };
 $('#opt-hide').onchange = (e) => { S.settings.hideDone = e.target.checked; saveSettings(); if (S.cur) { palEls.forEach((el) => el.classList.remove('gone')); refreshPalette(); } };
 $('#opt-motion').onchange = (e) => { S.settings.reduced = e.target.checked; applyMotion(); saveSettings(); };
 $('#m-help').onclick = () => { closeMenu(); showCoach(); };
@@ -652,6 +792,9 @@ function openThemes() {
   };
 }
 $('#btn-theme').onclick = openThemes;
+$('#btn-collection').onclick = openCollection;
+$('#st-done-card').onclick = openCollection;
+$('#col-back').onclick = () => { show('gallery'); renderGallery(); };
 $('#m-theme').onclick = () => { closeMenu(); openThemes(); };
 
 // ---------------------------------------------------------------- tools / keys
@@ -699,9 +842,9 @@ sysReduced.addEventListener && sysReduced.addEventListener('change', applyMotion
 (async function boot() {
   try {
     const st = await store.get('settings');
-    if (st && typeof st === 'object') for (const k of ['sound', 'autoAdvance', 'reduced', 'vibe', 'coached', 'hideDone']) if (typeof st[k] === 'boolean') S.settings[k] = st[k];
-    if (Number.isInteger(st.streak)) S.settings.streak = st.streak;
-    if (typeof st.lastDay === 'string') S.settings.lastDay = st.lastDay;
+    if (st && typeof st === 'object') for (const k of ['sound', 'autoAdvance', 'reduced', 'vibe', 'coached', 'hideDone', 'dragPans']) if (st && typeof st[k] === 'boolean') S.settings[k] = st[k];
+    if (st && Number.isInteger(st.streak)) S.settings.streak = st.streak;
+    if (st && typeof st.lastDay === 'string') S.settings.lastDay = st.lastDay;
     if (st && typeof st.theme === 'string') S.settings.theme = themeById(st.theme).id;
     const fv = await store.get('favorites');
     if (Array.isArray(fv)) S.favorites = new Set(fv.filter((x) => typeof x === 'string'));
@@ -712,7 +855,13 @@ sysReduced.addEventListener && sysReduced.addEventListener('change', applyMotion
       const count = rec.filled.filter((i) => Number.isInteger(i) && i >= 0 && i < total).length;
       S.summary[m.id] = { count, total, completed: !!rec.completed && count === total, updated: rec.updated || 0, time: +rec.time || 0 };
     }));
+    const sc = await store.get('saved-collection');
+    if (sc && typeof sc === 'object') mergeSaved(sc.items);
+    let migrated = false;
+    for (const [id, sm] of Object.entries(S.summary)) if (sm.completed && !SAVED.has(id)) { SAVED.set(id, { first: sm.updated || Date.now(), last: sm.updated || Date.now(), times: 1, time: sm.time || 0 }); migrated = true; }
+    if (migrated) store.set('saved-collection', { schema: 1, items: savedObj() });
   } catch (err) { console.warn('Lustra: could not read saved data', err); }
+  connectCloud();
   sfx.setSound(S.settings.sound);
   applyMotion();
   applyTheme(S.settings.theme, false);
@@ -721,4 +870,4 @@ sysReduced.addEventListener && sysReduced.addEventListener('change', applyMotion
 })();
 
 // test hook
-window.__lustra = { S, board, getArtwork, CATALOG };
+window.__lustra = { S, board, getArtwork, CATALOG, SAVED };

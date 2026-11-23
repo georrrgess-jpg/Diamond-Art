@@ -148,7 +148,7 @@ export class Board {
     this.dirty = false;
     this.camAnim = null;
     this.hint = null; this.wobble = null; this.shimmer = null;
-    this.layer = null; this._lastCam = 0;
+    this.layer = null; this._lastCam = 0; this.dragPans = true;
     this._bind();
     this.ro = new ResizeObserver(() => this.resize());
     this.ro.observe(canvas.parentElement);
@@ -594,20 +594,34 @@ export class Board {
     const panning = this.mode === 'pan' || this.space || e.button === 1 || e.button === 2;
     if (panning) { this.gesture = { type: 'pan', x, y }; this.cv.style.cursor = 'grabbing'; return; }
     if (e.button !== 0) return;
-    if (e.pointerType === 'mouse' || e.pointerType === 'pen') {
+    // One-finger drag: starting on a lit (matching, empty, big enough) spot
+    // paints; starting anywhere else moves the camera. Taps place as usual.
+    const paints = !this.dragPans || this._paintable(x, y);
+    const mouse = e.pointerType === 'mouse' || e.pointerType === 'pen';
+    if (paints && mouse) {
       this.gesture = { type: 'paint', x, y, t0: performance.now() };
       this.stroke = [];
       this._tap(x, y);
-    } else {
-      const g = (this.gesture = { type: 'pending', x, y, sx: x, sy: y, t0: performance.now() });
-      // long-press an empty socket to pick up its gem number
-      clearTimeout(this._lpT);
-      this._lpT = setTimeout(() => {
-        if (this.gesture !== g) return;
-        const i = this.hitTest(...this.toWorld(g.sx, g.sy));
-        if (i >= 0 && !this.filled[i] && this.h.onPick) { this.gesture = { type: 'idle' }; this.h.onPick(this.art.sockets[i].p, i); }
-      }, 450);
+      return;
     }
+    const g = (this.gesture = { type: paints ? 'pending' : 'drag', x, y, sx: x, sy: y, t0: performance.now(), mouse });
+    if (mouse) return;
+    // long-press an empty socket to pick up its gem number
+    clearTimeout(this._lpT);
+    this._lpT = setTimeout(() => {
+      if (this.gesture !== g || g.moved) return;
+      const i = this.hitTest(...this.toWorld(g.sx, g.sy));
+      if (i >= 0 && !this.filled[i] && this.h.onPick) { this.gesture = { type: 'idle' }; this.h.onPick(this.art.sockets[i].p, i); }
+    }, 450);
+  }
+  // Is there an empty socket of the selected number under (x, y), big enough to aim at?
+  _paintable(x, y) {
+    const probe = (px, py) => this.hitTest(...this.toWorld(px, py));
+    let i = probe(x, y);
+    if (i < 0) for (const [dx, dy] of [[5, 0], [-5, 0], [0, 5], [0, -5]]) { i = probe(x + dx, y + dy); if (i >= 0) break; }
+    if (i < 0 || this.filled[i]) return false;
+    const g = this.art.sockets[i];
+    return g.p === this.sel && Math.min(g.w, g.h) * this.cam.s >= 12;
   }
   // A tap places a gem; two taps on nothing (or on placed gems) in quick
   // succession zoom in around that point.
@@ -664,7 +678,8 @@ export class Board {
       this._track(cx - g.cx, cy - g.cy);
       this.zoomAt(cx, cy, d / (g.d || d));
       g.d = d; g.cx = cx; g.cy = cy;
-    } else if (g.type === 'pan') {
+    } else if (g.type === 'pan' || (g.type === 'drag' && (g.moved || Math.hypot(x - g.sx, y - g.sy) > 6))) {
+      if (g.type === 'drag' && !g.moved) { g.moved = true; g.x = px; g.y = py; this.cv.style.cursor = 'grabbing'; }
       this.cam.x += x - g.x; this.cam.y += y - g.y; this._track(x - g.x, y - g.y); g.x = x; g.y = y;
       this._clamp(); this._camChanged();
     } else if (g.type === 'pending') {
@@ -683,12 +698,12 @@ export class Board {
     if (!p) return;
     this.pointers.delete(e.pointerId);
     const g = this.gesture;
-    if (g && g.type === 'pending' && !cancel) {
+    if (g && !cancel && (g.type === 'pending' || (g.type === 'drag' && !g.moved))) {
       this.stroke = [];
-      this._tap(p.x, p.y);
+      this._tap(g.type === 'drag' ? g.sx : p.x, g.type === 'drag' ? g.sy : p.y);
     }
     // flick momentum after panning (one or two fingers)
-    if (!cancel && g && (g.type === 'pan' || g.type === 'pinch') && this._vel && !this.reduced) {
+    if (!cancel && g && (g.type === 'pan' || g.type === 'pinch' || (g.type === 'drag' && g.moved)) && this._vel && !this.reduced) {
       const v = this._vel, idle = performance.now() - v.t;
       if (idle < 60 && Math.hypot(v.vx, v.vy) > 0.25) { this.fling = { vx: v.vx, vy: v.vy, t: performance.now() }; this.render(); }
       this._vel = null;

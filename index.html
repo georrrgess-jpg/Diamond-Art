@@ -34,9 +34,10 @@
         </div>
         <div class="head-right">
           <div class="stats" aria-label="Your collection">
-            <div class="stat"><b id="st-done">0</b><span id="st-done-label">finished</span></div>
+            <button class="stat" id="st-done-card" aria-label="Open my collection"><b id="st-done">0</b><span id="st-done-label">finished</span></button>
             <div class="stat"><b id="st-gems">0</b><span>gems placed</span></div>
           </div>
+          <button class="theme-btn" id="btn-collection" aria-label="My collection of finished artworks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 15l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.6"/></svg><span>Collection</span></button>
           <button class="theme-btn" id="btn-theme" aria-label="Change theme"><span class="theme-dot" aria-hidden="true"></span><span>Theme</span></button>
         </div>
       </header>
@@ -73,6 +74,21 @@
 
       <main id="sections"></main>
       <p id="empty" class="empty" hidden>Nothing here yet. Try another filter.</p>
+    </div>
+  </section>
+
+  <!-- ============ COLLECTION ============ -->
+  <section id="collection" class="screen" aria-label="My collection" hidden>
+    <div class="g-wrap">
+      <header class="col-head">
+        <button class="icon-btn" id="col-back" aria-label="Back to gallery"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+        <div>
+          <h1 class="col-title">My Collection</h1>
+          <p class="col-sub"><span id="col-count"></span> · <span id="col-sync">Saved in this browser</span></p>
+        </div>
+      </header>
+      <p id="col-empty" class="empty" hidden>Finish an artwork and it is saved here automatically. You can view it any time, save an image, or play it again.</p>
+      <div id="col-grid" class="grid"></div>
     </div>
   </section>
 
@@ -116,6 +132,7 @@
       <label class="row"><span>Vibration</span><input type="checkbox" id="opt-vibe" class="switch"></label>
       <label class="row"><span>Jump to next gem when one is done</span><input type="checkbox" id="opt-auto" class="switch"></label>
       <label class="row"><span>Hide finished gems in the tray</span><input type="checkbox" id="opt-hide" class="switch"></label>
+      <label class="row"><span>One-finger drag moves the board</span><input type="checkbox" id="opt-drag" class="switch"></label>
       <label class="row"><span>Reduce motion</span><input type="checkbox" id="opt-motion" class="switch"></label>
       <hr>
       <button class="row btn-row" id="m-theme">Theme <span class="theme-dot" aria-hidden="true"></span></button>
@@ -128,8 +145,8 @@
         <h3 id="coach-title">How to play</h3>
         <ol class="steps">
           <li><span class="step-ico" data-ico="palette"></span><div><b>Pick a gem</b><p>Choose a numbered gem from the tray at the bottom.</p></div></li>
-          <li><span class="step-ico" data-ico="tap"></span><div><b>Tap matching numbers</b><p>Spots with that number light up. Tap one, or drag across several to fill them in one stroke. Press and hold any spot to switch to its gem.</p></div></li>
-          <li><span class="step-ico" data-ico="zoom"></span><div><b>Zoom in for detail</b><p>Pinch, scroll or double-tap to zoom. Use two fingers, the Move tool or Space + drag to look around. Undo takes back your last stroke.</p></div></li>
+          <li><span class="step-ico" data-ico="tap"></span><div><b>Tap matching numbers</b><p>Spots with that number light up. Tap one to place a gem. To fill several, start your drag on a lit spot and sweep across. Press and hold any spot to switch to its gem.</p></div></li>
+          <li><span class="step-ico" data-ico="zoom"></span><div><b>Zoom in for detail</b><p>Drag with one finger anywhere else to move around. Pinch, scroll or double-tap to zoom. Undo takes back your last stroke. Finished artworks are saved to My Collection, where you can play them again.</p></div></li>
           <li><span class="step-ico" data-ico="find"></span><div><b>Stuck?</b><p>Find shows you a spot that still needs the selected gem. Progress saves automatically.</p></div></li>
         </ol>
         <button class="btn primary wide" id="coach-ok">Start placing gems</button>
